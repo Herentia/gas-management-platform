@@ -1,22 +1,38 @@
 import { globalIgnores } from 'eslint/config'
-import { defineConfigWithVueTs, vueTsConfigs } from '@vue/eslint-config-typescript'
+import {
+  defineConfigWithVueTs,
+  vueTsConfigs,
+  configureVueProject,
+} from '@vue/eslint-config-typescript'
 import pluginVue from 'eslint-plugin-vue'
 import skipFormatting from '@vue/eslint-config-prettier/skip-formatting'
+import path from 'node:path'
 
-// To allow more languages other than `ts` in `.vue` files, uncomment the following lines:
-// import { configureVueProject } from '@vue/eslint-config-typescript'
-// configureVueProject({ scriptLangs: ['ts', 'tsx'] })
-// More info at https://github.com/vuejs/eslint-config-typescript/#advanced-setup
+// 启用高级配置
+configureVueProject({
+  scriptLangs: ['ts', 'tsx'],
+  rootDir: path.resolve(import.meta.dirname),
+  allowComponentTypeUnsafety: true,
+})
 
 export default defineConfigWithVueTs(
   {
     name: 'app/files-to-lint',
     files: ['**/*.{ts,mts,tsx,vue}'],
   },
-
-  globalIgnores(['**/dist/**', '**/dist-ssr/**', '**/coverage/**']),
-
+  globalIgnores([
+    '&zwnj;**/dist/**&zwnj;',
+    '&zwnj;**/dist-ssr/**&zwnj;',
+    '&zwnj;**/coverage/**&zwnj;',
+  ]),
   pluginVue.configs['flat/essential'],
-  vueTsConfigs.recommended,
+  vueTsConfigs.recommendedTypeChecked, // 使用类型检查版本
   skipFormatting,
+  {
+    rules: {
+      // 环境敏感规则
+      'no-console': process.env.NODE_ENV === 'production' ? 'error' : 'warn',
+      '@typescript-eslint/no-unused-vars': 'warn',
+    },
+  },
 )

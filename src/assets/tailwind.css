@@ -1,0 +1,107 @@
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+@layer utilities {
+  .content-auto {
+    content-visibility: auto;
+  }
+  .module-card {
+    @apply relative rounded-xl p-6 shadow-lg transition-all duration-300 hover:shadow-xl cursor-pointer overflow-hidden;
+  }
+  .module-card::before {
+    @apply absolute top-0 left-0 w-full h-1 transition-all duration-300;
+    content: '';
+  }
+  .status-normal {
+    @apply bg-white border-l-4 border-success;
+  }
+  .status-normal::before {
+    @apply bg-success;
+  }
+  .status-warning {
+    @apply bg-white border-l-4 border-danger;
+  }
+  .status-warning::before {
+    @apply bg-danger;
+  }
+  .map-container {
+    @apply relative w-full bg-light rounded-xl overflow-hidden shadow-inner;
+    height: calc(100% - 2rem);
+  }
+  .fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+  }
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .pulse {
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.05);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+  .slide-in {
+    animation: slideIn 0.3s ease-out;
+  }
+  @keyframes slideIn {
+    from {
+      transform: translateX(-20px);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+  .table-shadow {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  }
+  .layer-tree-item {
+    @apply py-1.5 px-2 rounded hover:bg-gray-100 cursor-pointer transition-colors;
+  }
+  .layer-tree-item.active {
+    @apply bg-primary/10 text-primary font-medium;
+  }
+  .sub-module-tab {
+    @apply px-4 py-2.5 text-sm font-medium transition-all border-b-2 border-transparent hover:text-primary;
+  }
+  .sub-module-tab.active {
+    @apply text-primary border-primary;
+  }
+}
+
+/* 自定义滚动条样式 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
