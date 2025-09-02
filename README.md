@@ -37,3 +37,11 @@ pnpm build
 ```sh
 pnpm lint
 ```
+
+### 高德地图
+
+(### url: '<http://webst0{1-4}.is.autonavi.com/appmaptile?style=7&x={x}&y={y}&z={z}&lang=zh_cn&scale=1&size=1>')
+
+### 百度地图
+
+(### url: '<http://online{s}.map.bdimg.com/tile/?qt=tile&x={x}&y={y}&z={z}&styles=pl&scaler=1&udt=20250831>')

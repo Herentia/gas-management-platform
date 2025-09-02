@@ -1,30 +1,12 @@
-// 通用类型定义
-export interface TableDataItem {
-  time: string
-  flow: number
-  pressure: number
-  status: '正常' | '异常'
-}
-
-export interface FilterForm {
-  dateRange: [Date, Date] | null
-  gasType: string
-  period: 'hour' | 'day' | 'month'
-}
-
-export interface TabItem {
-  path: string
-  name: string
-}
-
 export interface ModuleCard {
+  id: string
   title: string
-  status: 'normal' | 'warning'
   description: string
+  status: 'normal' | 'warning'
   statusText: string
   infoText: string
   icon: string
-  route: string
+  targetView: string
 }
 
 export interface AlertItem {
@@ -32,5 +14,29 @@ export interface AlertItem {
   title: string
   location: string
   time: string
+}
+
+export interface GasSourceData {
+  time: string
+  flow: number
+  pressure: number
+  status: 'normal' | 'warning'
+}
+
+export interface ModuleCard {
+  id: string
+  title: string
+  description: string
+  status: 'normal' | 'warning'
+  statusText: string
+  infoText: string
   icon: string
+  targetView: string
+}
+
+export interface AlertItem {
+  type: 'danger' | 'warning'
+  title: string
+  location: string
+  time: string
 }

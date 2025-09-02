@@ -1,7 +1,6 @@
 {
   "name": "gas-management-platform",
-  "version": "1.0.0",
-  "description": "燃气智慧管理平台",
+  "version": "0.0.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -18,7 +17,10 @@
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.2",
+    "@tailwindcss/vite": "^4.1.12",
+    "chart.js": "^4.5.0",
     "element-plus": "^2.11.1",
+    "ol": "^10.6.1",
     "pinia": "^3.0.3",
     "vue": "^3.5.18",
     "vue-router": "^4.5.1"
