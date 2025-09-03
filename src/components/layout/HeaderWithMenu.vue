@@ -9,6 +9,36 @@
         <h1 class="logo-text">燃气智慧管理平台</h1>
       </div>
 
+      <!-- 中间动态菜单 -->
+      <div class="nav-menu-container">
+        <el-menu :default-active="activeMenu" mode="horizontal" background-color="#165DFF" text-color="#fff"
+          active-text-color="#ffd04b" @select="handleMenuSelect">
+          <template v-for="item in menuItems" :key="item.path">
+            <el-menu-item v-if="!item.children" :index="item.path">
+              <el-icon v-if="item.icon">
+                <component :is="item.icon" />
+              </el-icon>
+              <span>{{ item.title }}</span>
+            </el-menu-item>
+
+            <el-sub-menu v-else :index="item.path">
+              <template #title>
+                <el-icon v-if="item.icon">
+                  <component :is="item.icon" />
+                </el-icon>
+                <span>{{ item.title }}</span>
+              </template>
+              <el-menu-item v-for="child in item.children" :key="child.path" :index="child.path">
+                <el-icon v-if="child.icon">
+                  <component :is="child.icon" />
+                </el-icon>
+                <span>{{ child.title }}</span>
+              </el-menu-item>
+            </el-sub-menu>
+          </template>
+        </el-menu>
+      </div>
+
       <!-- 右侧用户操作区 -->
       <div class="user-actions">
         <!-- 通知铃铛 -->
@@ -89,11 +119,25 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted, watch, type Component } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import {
+  Bell,
+  Warning,
+  ArrowDown,
+  User,
+  Setting,
+  SwitchButton,
+  Menu as IconMenu,
+  HomeFilled,
+  Monitor,
+  DataBoard,
+  SetUp,
+  WarningFilled
+} from '@element-plus/icons-vue'
 
 const router = useRouter()
-const showMobileMenu = ref(false)
+const route = useRoute()
 
 interface UserInfo {
   name: string
@@ -101,10 +145,11 @@ interface UserInfo {
   role: string
 }
 
-interface MobileMenuItem {
-  name: string
-  icon: string
-  route: string
+interface MenuItem {
+  title: string
+  path: string
+  icon?: Component
+  children?: MenuItem[]
 }
 
 const userInfo = ref<UserInfo>({
@@ -113,22 +158,96 @@ const userInfo = ref<UserInfo>({
   role: '系统管理员'
 })
 
-const mobileMenuItems = ref<MobileMenuItem[]>([
-  { name: '管网管理', icon: 'fa fa-sitemap', route: '/pipe-network' },
-  { name: '巡检管理', icon: 'fa fa-walking', route: '/inspection' },
-  { name: '工程管理', icon: 'fa fa-building', route: '/engineering' },
-  { name: '客服管理', icon: 'fa fa-users', route: '/customer-service' }
-])
+// 模拟从后端获取菜单数据
+const menuItems = ref<MenuItem[]>([])
+
+// 获取当前激活的菜单项
+const activeMenu = computed(() => {
+  const { path } = route
+  return path
+})
+
+// 初始化菜单
+const initMenu = () => {
+  // 这里可以从后端API获取菜单数据，或者根据路由生成
+  // 这里使用模拟数据
+  menuItems.value = [
+    {
+      title: '首页',
+      path: '/',
+      icon: HomeFilled
+    },
+    {
+      title: '实时监控',
+      path: '/monitor',
+      icon: Monitor,
+      children: [
+        {
+          title: '管网监控',
+          path: '/monitor/gas-source',
+          icon: Monitor
+        },
+        {
+          title: '设备状态',
+          path: '/monitor/device-status',
+          icon: Monitor
+        }
+      ]
+    },
+    {
+      title: '数据分析',
+      path: '/data-analysis',
+      icon: DataBoard,
+      children: [
+        {
+          title: '用气统计',
+          path: '/data-analysis/usage',
+          icon: DataBoard
+        },
+        {
+          title: '报警分析',
+          path: '/data-analysis/alerts',
+          icon: WarningFilled
+        }
+      ]
+    },
+    {
+      title: '系统管理',
+      path: '/system',
+      icon: SetUp,
+      children: [
+        {
+          title: '用户管理',
+          path: '/system/users',
+          icon: User
+        },
+        {
+          title: '角色权限',
+          path: '/system/roles',
+          icon: SetUp
+        }
+      ]
+    }
+  ]
+}
+
+// 处理菜单选择
+const handleMenuSelect = (index: string) => {
+  router.push(index)
+}
 
 const goHome = () => {
   router.push('/')
-  showMobileMenu.value = false
 }
 
-const navigateTo = (route: string) => {
-  router.push(route)
-  showMobileMenu.value = false
-}
+// 监听路由变化，确保菜单高亮正确
+watch(() => route.path, (newPath) => {
+  // 可以在这里处理菜单激活状态
+})
+
+onMounted(() => {
+  initMenu()
+})
 </script>
 
 <style scoped>
@@ -156,6 +275,7 @@ const navigateTo = (route: string) => {
   align-items: center;
   gap: 0.75rem;
   cursor: pointer;
+  flex-shrink: 0;
 }
 
 .logo-icon {
@@ -165,6 +285,60 @@ const navigateTo = (route: string) => {
 .logo-text {
   font-size: 1.25rem;
   font-weight: 700;
+}
+
+.nav-menu-container {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  margin: 0 2rem;
+}
+
+:deep(.el-menu) {
+  border-bottom: none;
+}
+
+:deep(.el-menu--horizontal) {
+  background-color: transparent;
+}
+
+:deep(.el-menu--horizontal > .el-menu-item),
+:deep(.el-menu--horizontal > .el-sub-menu .el-sub-menu__title) {
+  color: white;
+  height: 64px;
+  line-height: 64px;
+  border-bottom: none;
+}
+
+:deep(.el-menu--horizontal > .el-menu-item.is-active),
+:deep(.el-menu--horizontal > .el-sub-menu.is-active .el-sub-menu__title) {
+  color: #ffd04b;
+  border-bottom: 2px solid #ffd04b;
+}
+
+:deep(.el-menu--horizontal > .el-menu-item:not(.is-disabled):hover),
+:deep(.el-menu--horizontal > .el-sub-menu:not(.is-disabled):hover .el-sub-menu__title) {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+:deep(.el-menu--horizontal .el-menu--popup) {
+  background-color: #165DFF;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+:deep(.el-menu--horizontal .el-menu--popup .el-menu-item) {
+  color: white;
+  background-color: #165DFF;
+}
+
+:deep(.el-menu--horizontal .el-menu--popup .el-menu-item:hover) {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+:deep(.el-menu--horizontal .el-menu--popup .el-menu-item.is-active) {
+  color: #ffd04b;
+  background-color: rgba(255, 208, 75, 0.1);
 }
 
 @media (min-width: 768px) {
@@ -177,6 +351,7 @@ const navigateTo = (route: string) => {
   display: flex;
   align-items: center;
   gap: 1.5rem;
+  flex-shrink: 0;
 }
 
 .badge-container {
@@ -306,5 +481,27 @@ const navigateTo = (route: string) => {
 
 :deep(.el-dropdown-menu__item) {
   padding: 0.75rem 1rem;
+}
+
+/* 响应式设计 */
+@media (max-width: 1024px) {
+  .nav-menu-container {
+    margin: 0 1rem;
+  }
+
+  :deep(.el-menu--horizontal > .el-menu-item),
+  :deep(.el-menu--horizontal > .el-sub-menu .el-sub-menu__title) {
+    padding: 0 0.75rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .nav-menu-container {
+    display: none;
+  }
+
+  .header-container {
+    justify-content: space-between;
+  }
 }
 </style>

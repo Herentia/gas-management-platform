@@ -37,14 +37,20 @@ const routes: Array<RouteRecordRaw> = [
     },
     redirect: { name: 'gas-source' },
     children: [
+      // {
+      //   path: 'gas-source',
+      //   name: 'gas-source',
+      //   component: () => import('@/components/pipe-network/GasSourceModule.vue'),
+      //   meta: {
+      //     title: '气源监测 - 管网管理',
+      //     breadcrumb: ['首页', '管网管理', '气源流量压力监测'],
+      //   },
+      // },
       {
-        path: 'gas-source',
+        path: '/monitor/gas-source',
         name: 'gas-source',
-        component: () => import('@/components/pipe-network/GasSourceModule.vue'),
-        meta: {
-          title: '气源监测 - 管网管理',
-          breadcrumb: ['首页', '管网管理', '气源流量压力监测'],
-        },
+        component: () => import('@/views/GasPipeControl/GasSourcePanel.vue'),
+        meta: { title: '管网监控', icon: 'monitor' },
       },
       {
         path: 'end-point',

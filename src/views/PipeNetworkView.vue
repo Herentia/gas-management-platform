@@ -1,74 +1,60 @@
 <template>
+  <Header />
   <div class="pipe-network-view">
     <!-- 地图容器 -->
     <div class="map-content">
       <div class="map-container">
         <div id="ol-map" ref="mapContainer" class="ol-map"></div>
 
-        <!-- 地图控制工具 -->
-        <div class="map-controls">
-          <div class="control-group">
-            <el-tooltip content="放大" placement="left">
-              <el-button :icon="ZoomIn" circle @click="zoomIn" />
-            </el-tooltip>
-            <el-tooltip content="缩小" placement="left">
-              <el-button :icon="ZoomOut" circle @click="zoomOut" />
-            </el-tooltip>
-            <el-tooltip content="重置视图" placement="left">
-              <el-button :icon="Aim" circle @click="resetView" />
-            </el-tooltip>
-          </div>
-        </div>
+        <!-- 地图信息组件 - 调整位置避免重叠 -->
+        <MapInfoDisplay :scale="scale" :longitude="longitude" :latitude="latitude" :altitude="altitude"
+          :viewAngle="viewAngle" :viewHeight="viewHeight" class="info-display-adjusted" />
 
-        <!-- 图层控制 -->
-        <div class="layer-control">
-          <el-card class="layer-panel">
-            <template #header>
-              <div class="layer-header">
-                <span>图层控制</span>
-                <el-switch v-model="layerVisible" active-text="显示" />
-              </div>
-            </template>
-            <div class="layer-list">
-              <el-checkbox-group v-model="selectedLayers">
-                <el-checkbox label="pipeline">管网线路</el-checkbox>
-                <el-checkbox label="equipment">设备设施</el-checkbox>
-                <el-checkbox label="warning">预警点位</el-checkbox>
-                <el-checkbox label="station">场站位置</el-checkbox>
-              </el-checkbox-group>
-            </div>
-          </el-card>
-        </div>
+        <!-- 右下角的地图控制组件 -->
+        <MapControls @zoom-in="zoomIn" @zoom-out="zoomOut" @reset-view="resetView" :layers="selectedLayers"
+          @update:layers="selectedLayers = $event" />
+
+        <!-- 动态组件容器 -->
+        <!-- <DynamicPanelContainer /> -->
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import Header from '@/components/layout/HeaderWithMenu.vue'
+import MapInfoDisplay from '@/components/map/MapInfoDisplay.vue'
+import MapControls from '@/components/map/MapControls.vue'
+import DynamicPanelContainer from './GasPipeControl/DynamicPanelContainer.vue'
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import Map from 'ol/Map'
 import View from 'ol/View'
 import TileLayer from 'ol/layer/Tile'
 import XYZ from 'ol/source/XYZ'
-import { fromLonLat } from 'ol/proj'
-import { defaults as defaultControls, ZoomToExtent } from 'ol/control'
+import { fromLonLat, toLonLat } from 'ol/proj'
+import { defaults as defaultControls, ScaleLine } from 'ol/control'
 import { Vector as VectorLayer } from 'ol/layer'
 import { Vector as VectorSource } from 'ol/source'
 import { Feature } from 'ol'
 import { Point, LineString } from 'ol/geom'
 import { Style, Stroke, Circle, Fill } from 'ol/style'
 
-import {
-  ZoomIn,
-  ZoomOut,
-  Aim,
-} from '@element-plus/icons-vue'
+import { Close } from '@element-plus/icons-vue'
 
 const router = useRouter()
 
-const layerVisible = ref(true)
+// 地图信息数据
+const scale = ref('300km')
+const longitude = ref('96.99505373')
+const latitude = ref('49.85332650')
+const altitude = ref('0.00米')
+const viewAngle = ref('-89.90')
+const viewHeight = ref('7413725.84米')
+
+// 图层控制
 const selectedLayers = ref(['pipeline', 'equipment', 'warning'])
+const showLayersPanel = ref(false)
 
 // OpenLayers 地图实例
 const mapContainer = ref<HTMLElement>()
@@ -86,6 +72,15 @@ const initMap = () => {
     crossOrigin: 'anonymous'
   })
 
+  // 创建比例尺控件
+  const scaleControl = new ScaleLine({
+    units: 'metric',
+    bar: true,
+    steps: 4,
+    text: true,
+    minWidth: 100
+  })
+
   // 创建地图
   map = new Map({
     target: mapContainer.value,
@@ -100,9 +95,7 @@ const initMap = () => {
       minZoom: 3,
       maxZoom: 18
     }),
-    controls: defaultControls().extend([
-      new ZoomToExtent()
-    ])
+    controls: defaultControls().extend([scaleControl])
   })
 
   // 添加矢量图层
@@ -127,10 +120,34 @@ const initMap = () => {
   // 添加示例数据
   addSampleData()
 
+  // 监听地图视图变化，更新坐标信息
+  map.getView().on('change', updateMapInfo)
+
   // 确保地图正确渲染
   setTimeout(() => {
     map?.updateSize()
+    updateMapInfo()
   }, 100)
+}
+
+// 更新地图信息
+const updateMapInfo = () => {
+  if (!map) return
+
+  const view = map.getView()
+  const center = view.getCenter()
+
+  if (center) {
+    const lonLat = toLonLat(center)
+    longitude.value = lonLat[0].toFixed(8)
+    latitude.value = lonLat[1].toFixed(8)
+  }
+
+  // 更新比例尺信息（这里简化处理，实际应根据zoom级别计算）
+  const zoom = view.getZoom()
+  if (zoom) {
+    scale.value = `${Math.round(1000 / Math.pow(2, zoom - 3))}km`
+  }
 }
 
 // 添加示例管网数据
@@ -214,11 +231,8 @@ const resetView = () => {
   }
 }
 
-const refreshMap = () => {
-  if (map) {
-    map.updateSize()
-    map.render()
-  }
+const toggleLayersPanel = () => {
+  showLayersPanel.value = !showLayersPanel.value
 }
 
 // 生命周期
@@ -247,17 +261,13 @@ const handleResize = () => {
 
 <style scoped>
 .pipe-network-view {
-  height: 100vh;
+  height: calc(100vh - 64px);
+  /* 减去Header高度 */
   width: 100vw;
   display: flex;
   flex-direction: column;
   background: #f8fafc;
   overflow: hidden;
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
 }
 
 .map-content {
@@ -285,50 +295,52 @@ const handleResize = () => {
   bottom: 0;
 }
 
-.map-controls {
-  position: absolute;
-  right: 20px;
-  top: 20px;
-  z-index: 1000;
+/* 调整信息显示组件位置，避免与控制组件重叠 */
+.info-display-adjusted {
+  right: 80px;
 }
 
-.control-group {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+/* 图层控制面板 */
+.layer-panel {
+  position: absolute;
+  right: 70px;
+  /* 放在控制按钮左侧 */
+  top: 20px;
+  z-index: 1000;
+  width: 0;
+  height: auto;
   background: white;
-  padding: 12px;
   border-radius: 8px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  transition: all 0.3s ease;
+  opacity: 0;
 }
 
-.layer-control {
-  position: absolute;
-  left: 20px;
-  top: 20px;
-  z-index: 1000;
-  max-width: 250px;
+.layer-panel-expanded {
+  width: 220px;
+  opacity: 1;
+  padding: 16px;
 }
 
-.layer-header {
+.panel-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 0;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e5e7eb;
 }
 
-.layer-list {
+.panel-header span {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.panel-content {
   display: flex;
   flex-direction: column;
   gap: 8px;
-}
-
-:deep(.el-card__header) {
-  padding: 12px 16px;
-}
-
-:deep(.el-card__body) {
-  padding: 16px;
 }
 
 :deep(.el-checkbox-group) {
@@ -343,60 +355,13 @@ const handleResize = () => {
 
 /* 响应式设计 */
 @media (max-width: 768px) {
-  .map-controls {
-    right: 10px;
+  .layer-panel {
+    right: 60px;
     top: 10px;
   }
 
-  .control-group {
-    padding: 8px;
+  .layer-panel-expanded {
+    width: 180px;
   }
-
-  .layer-control {
-    left: 10px;
-    top: 10px;
-    max-width: 200px;
-  }
-
-  :deep(.el-card) {
-    font-size: 14px;
-  }
-}
-
-/* 确保地图控件按钮样式 */
-:deep(.el-button) {
-  width: 36px;
-  height: 36px;
-}
-
-:deep(.el-button.is-circle) {
-  padding: 8px;
-}
-
-/* 移除所有可能的外部边距和内边距 */
-* {
-  box-sizing: border-box;
-}
-
-body,
-html {
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
-}
-
-/* 确保地图容器没有额外的间距 */
-#ol-map {
-  margin: 0;
-  padding: 0;
-}
-
-/* 修复可能的外部样式影响 */
-:deep(.ol-viewport) {
-  border-radius: 0 !important;
-}
-
-:deep(.ol-control) {
-  margin: 0 !important;
 }
 </style>

@@ -1,4 +1,5 @@
 <template>
+  <Header />
   <div class="fade-in">
     <!-- 功能模块标题 -->
     <h2 class="responsive-heading mb-6 text-gray-800">功能模块</h2>
@@ -19,6 +20,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import Footer from '@/components/layout/Footer.vue'
+import Header from '@/components/layout/Header.vue'
 import ModuleCard from '@/components/dashboard/ModuleCard.vue'
 import SystemOverview from '@/components/dashboard/SystemOverview.vue'
 import type { ModuleCard as ModuleCardType, AlertItem } from '@/types'
@@ -93,7 +95,6 @@ const recentAlerts = ref<AlertItem[]>([
 
 // 导航到指定页面
 const navigateTo = (view: string) => {
-  console.log(view)
   router.push({ name: view })
 }
 </script>

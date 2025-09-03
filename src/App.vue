@@ -1,14 +1,10 @@
 <template>
-  <div class="app-container">
-    <Header />
-    <main class="main-content">
-      <router-view />
-    </main>
-  </div>
+  <main class="main-content">
+    <router-view />
+  </main>
 </template>
 
 <script setup lang="ts">
-import Header from './components/layout/Header.vue'
 </script>
 
 <style>
