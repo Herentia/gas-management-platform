@@ -35,7 +35,7 @@ const routes: Array<RouteRecordRaw> = [
       icon: 'fa-sitemap',
       breadcrumb: ['首页', '管网管理'],
     },
-    redirect: { name: 'gas-source' },
+    // redirect: { name: 'gas-source' },
     children: [
       // {
       //   path: 'gas-source',
@@ -47,7 +47,7 @@ const routes: Array<RouteRecordRaw> = [
       //   },
       // },
       {
-        path: '/monitor/gas-source',
+        path: 'gas-source',
         name: 'gas-source',
         component: () => import('@/views/GasPipeControl/GasSourcePanel.vue'),
         meta: { title: '管网监控', icon: 'monitor' },

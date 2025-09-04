@@ -15,7 +15,7 @@
           @update:layers="selectedLayers = $event" />
 
         <!-- 动态组件容器 -->
-        <!-- <DynamicPanelContainer /> -->
+        <DynamicPanelContainer />
       </div>
     </div>
   </div>

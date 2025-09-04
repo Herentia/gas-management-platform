@@ -11,16 +11,16 @@
 
       <!-- 中间动态菜单 -->
       <div class="nav-menu-container">
-        <el-menu :default-active="activeMenu" mode="horizontal" background-color="#165DFF" text-color="#fff"
-          active-text-color="#ffd04b" @select="handleMenuSelect">
-          <template v-for="item in menuItems" :key="item.path">
-            <el-menu-item v-if="!item.children" :index="item.path">
+        <el-menu :key="menuKey" :default-active="activeMenu" mode="horizontal" background-color="#165DFF"
+          text-color="#fff" active-text-color="#ffd04b" @select="handleMenuSelect">
+          <!-- 为每个菜单项使用唯一的 key -->
+          <template v-for="item in menuItems">
+            <el-menu-item v-if="!item.children" :index="item.path" :key="item.id">
               <el-icon v-if="item.icon">
                 <component :is="item.icon" />
               </el-icon>
               <span>{{ item.title }}</span>
             </el-menu-item>
-
             <el-sub-menu v-else :index="item.path">
               <template #title>
                 <el-icon v-if="item.icon">
@@ -28,7 +28,7 @@
                 </el-icon>
                 <span>{{ item.title }}</span>
               </template>
-              <el-menu-item v-for="child in item.children" :key="child.path" :index="child.path">
+              <el-menu-item v-for="child in item.children" :key="child.id" :index="child.path">
                 <el-icon v-if="child.icon">
                   <component :is="child.icon" />
                 </el-icon>
@@ -119,7 +119,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, type Component } from 'vue'
+import { ref, computed, onMounted, nextTick, watch, markRaw, type Component } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import {
   Bell,
@@ -128,16 +128,16 @@ import {
   User,
   Setting,
   SwitchButton,
-  Menu as IconMenu,
   HomeFilled,
   Monitor,
   DataBoard,
-  SetUp,
   WarningFilled
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const route = useRoute()
+
+const menuKey = ref(0)
 
 interface UserInfo {
   name: string
@@ -146,6 +146,7 @@ interface UserInfo {
 }
 
 interface MenuItem {
+  id: number
   title: string
   path: string
   icon?: Component
@@ -169,64 +170,30 @@ const activeMenu = computed(() => {
 
 // 初始化菜单
 const initMenu = () => {
-  // 这里可以从后端API获取菜单数据，或者根据路由生成
-  // 这里使用模拟数据
   menuItems.value = [
     {
-      title: '首页',
-      path: '/',
-      icon: HomeFilled
+      id: 1,
+      title: '管网监控',
+      path: '/pipe-network/gas-source',
+      icon: markRaw(Monitor)
     },
     {
-      title: '实时监控',
-      path: '/monitor',
-      icon: Monitor,
-      children: [
-        {
-          title: '管网监控',
-          path: '/monitor/gas-source',
-          icon: Monitor
-        },
-        {
-          title: '设备状态',
-          path: '/monitor/device-status',
-          icon: Monitor
-        }
-      ]
+      id: 2,
+      title: '末端监测',
+      path: '/pipe-network/end-point',
+      icon: markRaw(Monitor)
     },
     {
-      title: '数据分析',
-      path: '/data-analysis',
-      icon: DataBoard,
-      children: [
-        {
-          title: '用气统计',
-          path: '/data-analysis/usage',
-          icon: DataBoard
-        },
-        {
-          title: '报警分析',
-          path: '/data-analysis/alerts',
-          icon: WarningFilled
-        }
-      ]
+      id: 3,
+      title: '管网分布',
+      path: '/pipe-network/distribution',
+      icon: markRaw(Monitor)
     },
     {
-      title: '系统管理',
-      path: '/system',
-      icon: SetUp,
-      children: [
-        {
-          title: '用户管理',
-          path: '/system/users',
-          icon: User
-        },
-        {
-          title: '角色权限',
-          path: '/system/roles',
-          icon: SetUp
-        }
-      ]
+      id: 4,
+      title: '设备设施',
+      path: '/pipe-network/equipment',
+      icon: markRaw(Monitor)
     }
   ]
 }
@@ -240,13 +207,17 @@ const goHome = () => {
   router.push('/')
 }
 
-// 监听路由变化，确保菜单高亮正确
+// 监听路由变化
 watch(() => route.path, (newPath) => {
   // 可以在这里处理菜单激活状态
 })
 
 onMounted(() => {
   initMenu()
+  // 强制重新渲染菜单
+  nextTick(() => {
+    menuKey.value++
+  })
 })
 </script>
 

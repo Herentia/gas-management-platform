@@ -158,6 +158,7 @@ const handleFilterChange = (filter: string) => {
 
 // 初始化时显示面板
 onMounted(() => {
+  console.log('气源面板已挂载')
   if (props.visible) {
     isMinimized.value = false
   }
