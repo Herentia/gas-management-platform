@@ -1,12 +1,12 @@
 <template>
-  <Header />
+  <Header @menu-click="handleMenuClick" />
   <div class="pipe-network-view">
     <!-- 地图容器 -->
     <div class="map-content">
       <div class="map-container">
         <div id="ol-map" ref="mapContainer" class="ol-map"></div>
 
-        <!-- 地图信息组件 - 调整位置避免重叠 -->
+        <!-- 地图信息组件 -->
         <MapInfoDisplay :scale="scale" :longitude="longitude" :latitude="latitude" :altitude="altitude"
           :viewAngle="viewAngle" :viewHeight="viewHeight" class="info-display-adjusted" />
 
@@ -16,6 +16,52 @@
 
         <!-- 动态组件容器 -->
         <DynamicPanelContainer />
+
+        <!-- 左侧树形结构悬浮面板 -->
+        <div class="floating-panel left-tree-panel"
+          :class="{ 'panel-hidden': !showLeftPanel, 'with-bottom-panel': showBottomPanel }" :style="leftPanelStyle">
+          <div class="panel-header">
+            <div class="panel-title">
+              <el-icon>
+                <Folder />
+              </el-icon>
+              <span>管网结构</span>
+            </div>
+            <div class="panel-actions">
+              <el-button link :icon="Close" @click="showLeftPanel = false" class="close-btn" />
+            </div>
+          </div>
+          <div class="panel-content">
+            <TreeStructure :data="treeData" @node-click="handleTreeNodeClick" v-if="showLeftPanel" />
+          </div>
+          <div class="panel-resize-handle" @mousedown="startResize('left')"></div>
+        </div>
+
+        <!-- 底部表格悬浮面板 -->
+        <div class="floating-panel bottom-table-panel" :class="{ 'panel-hidden': !showBottomPanel }">
+          <div class="panel-header">
+            <div class="panel-title">
+              <el-icon>
+                <Grid />
+              </el-icon>
+              <span>数据列表</span>
+            </div>
+            <div class="panel-actions">
+              <el-tooltip content="刷新数据">
+                <el-button link :icon="Refresh" @click="refreshTableData" />
+              </el-tooltip>
+              <el-tooltip content="导出数据">
+                <el-button link :icon="Download" @click="exportTableData" />
+              </el-tooltip>
+              <el-button link :icon="Close" @click="showBottomPanel = false" class="close-btn" />
+            </div>
+          </div>
+          <div class="panel-content">
+            <DataTable :data="tableData" :loading="tableLoading" @row-click="handleTableRowClick"
+              v-if="showBottomPanel" />
+          </div>
+          <div class="panel-resize-handle vertical" @mousedown="startResize('bottom')"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -26,7 +72,6 @@ import Header from '@/components/layout/HeaderWithMenu.vue'
 import MapInfoDisplay from '@/components/map/MapInfoDisplay.vue'
 import MapControls from '@/components/map/MapControls.vue'
 import DynamicPanelContainer from './GasPipeControl/DynamicPanelContainer.vue'
-import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import Map from 'ol/Map'
 import View from 'ol/View'
@@ -40,7 +85,294 @@ import { Feature } from 'ol'
 import { Point, LineString } from 'ol/geom'
 import { Style, Stroke, Circle, Fill } from 'ol/style'
 
-import { Close } from '@element-plus/icons-vue'
+// 原有导入保持不变
+import TreeStructure from '@/components/map/TreeStructure.vue'
+import DataTable from '@/components/map/DataTable.vue'
+import { Folder, Grid, Refresh, Download, Close } from '@element-plus/icons-vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+
+// 新增响应式数据
+const showLeftPanel = ref(false)
+const showBottomPanel = ref(false)
+const activeMenu = ref('')
+
+// 面板尺寸控制
+const leftPanelWidth = ref(320)
+const bottomPanelHeight = ref(300)
+const isResizing = ref(false)
+const resizeDirection = ref('')
+
+// 燃气行业蓝色主题
+const gasBlueTheme = {
+  primary: '#1E6FBA',     // 主蓝色
+  lightBlue: '#E8F4FE',   // 浅蓝色背景
+  darkBlue: '#165B9C',    // 深蓝色
+  accentBlue: '#2B8DE3',  // 强调蓝色
+  borderBlue: '#B8D9F5'   // 边框蓝色
+}
+
+// 计算左侧面板的动态高度
+const leftPanelStyle = computed(() => {
+  const style: any = {
+    width: `${leftPanelWidth.value}px`
+  }
+
+  // 当底部面板显示时，调整左侧面板高度避免重叠
+  if (showBottomPanel.value && showLeftPanel.value) {
+    const bottomPanelVisibleHeight = bottomPanelHeight.value + 40 // 底部面板高度 + 上下边距
+    style.height = `calc(100% - ${bottomPanelVisibleHeight}px)`
+  } else {
+    style.height = 'calc(100% - 40px)' // 默认高度（上下各20px边距）
+  }
+
+  return style
+})
+
+// 树形结构数据
+const treeData = ref([
+  {
+    id: '1',
+    label: '主干管网',
+    icon: 'Folder',
+    children: [
+      {
+        id: '1-1',
+        label: '北线主干管',
+        icon: 'Connection',
+        count: 5,
+        type: 'pipeline',
+        data: { coordinates: [[116.3974, 39.9093], [116.4074, 39.9193]] }
+      },
+      {
+        id: '1-2',
+        label: '南线主干管',
+        icon: 'Connection',
+        count: 3,
+        type: 'pipeline',
+        data: { coordinates: [[116.4074, 39.9193], [116.4174, 39.9093]] }
+      }
+    ]
+  },
+  {
+    id: '2',
+    label: '设备设施',
+    icon: 'Setting',
+    children: [
+      {
+        id: '2-1',
+        label: '调压站',
+        icon: 'OfficeBuilding',
+        count: 8,
+        type: 'station',
+        data: { coordinates: [116.3974, 39.9093] }
+      },
+      {
+        id: '2-2',
+        label: '阀门',
+        icon: 'Switch',
+        count: 25,
+        type: 'valve',
+        data: { coordinates: [116.4074, 39.9193] }
+      },
+      {
+        id: '2-3',
+        label: '监测点',
+        icon: 'Monitor',
+        count: 15,
+        type: 'monitor',
+        data: { coordinates: [116.4174, 39.9093] }
+      }
+    ]
+  },
+  {
+    id: '3',
+    label: '警告信息',
+    icon: 'Warning',
+    children: [
+      {
+        id: '3-1',
+        label: '压力异常',
+        icon: 'Warning',
+        count: 2,
+        type: 'warning'
+      },
+      {
+        id: '3-2',
+        label: '流量异常',
+        icon: 'Warning',
+        count: 1,
+        type: 'warning'
+      }
+    ]
+  }
+])
+
+// 表格数据
+const tableData = ref([
+  {
+    id: '1',
+    name: '北线主干管-001',
+    type: '管线',
+    status: '正常',
+    location: '116.3974, 39.9093',
+    updateTime: '2024-01-20 10:30:00',
+    data: { coordinates: [[116.3974, 39.9093], [116.4074, 39.9193]] }
+  },
+  {
+    id: '2',
+    name: '调压站-A01',
+    type: '设备',
+    status: '正常',
+    location: '116.4074, 39.9193',
+    updateTime: '2024-01-20 09:15:00',
+    data: { coordinates: [116.4074, 39.9193] }
+  },
+  {
+    id: '3',
+    name: '压力监测点-P001',
+    type: '监测点',
+    status: '警告',
+    location: '116.4174, 39.9093',
+    updateTime: '2024-01-20 11:20:00',
+    data: { coordinates: [116.4174, 39.9093] }
+  },
+  {
+    id: '4',
+    name: '阀门-V001',
+    type: '阀门',
+    status: '正常',
+    location: '116.4024, 39.9143',
+    updateTime: '2024-01-20 08:45:00',
+    data: { coordinates: [116.4024, 39.9143] }
+  }
+])
+
+const tableLoading = ref(false)
+
+// 处理菜单点击
+const handleMenuClick = (menuKey: string) => {
+  console.log('菜单点击:', menuKey)
+  activeMenu.value = menuKey
+
+  // 根据菜单键值控制面板显示
+  switch (menuKey) {
+    case '/pipe-network/gas-source':
+      showLeftPanel.value = !showLeftPanel.value
+      showBottomPanel.value = !showBottomPanel.value
+      break
+    case 'data-list':
+      showBottomPanel.value = !showBottomPanel.value
+      break
+    case 'full-analysis':
+      showLeftPanel.value = true
+      showBottomPanel.value = true
+      break
+    default:
+      // 其他菜单处理
+      break
+  }
+
+  // 确保地图正确调整大小
+  setTimeout(() => {
+    map?.updateSize()
+  }, 100)
+}
+
+// 处理树节点点击
+const handleTreeNodeClick = (nodeData: any) => {
+  console.log('树节点点击:', nodeData)
+
+  // 如果节点有坐标数据，聚焦到该位置
+  if (nodeData.data?.coordinates && map) {
+    focusOnCoordinates(nodeData.data.coordinates)
+  }
+}
+
+// 处理表格行点击
+const handleTableRowClick = (rowData: any) => {
+  console.log('表格行点击:', rowData)
+
+  // 如果行数据有坐标，聚焦到该位置
+  if (rowData.data?.coordinates && map) {
+    focusOnCoordinates(rowData.data.coordinates)
+  }
+}
+
+// 聚焦到坐标位置
+const focusOnCoordinates = (coordinates: any) => {
+  if (!map) return
+
+  const view = map.getView()
+
+  if (Array.isArray(coordinates[0])) {
+    // 处理线状要素（管线）
+    const extent = new LineString(coordinates.map((coord: number[]) => fromLonLat(coord))).getExtent()
+    view.fit(extent, { duration: 500, padding: [50, 50, 50, 50] })
+  } else {
+    // 处理点状要素
+    view.animate({
+      center: fromLonLat(coordinates),
+      zoom: 15,
+      duration: 500
+    })
+  }
+}
+
+// 刷新表格数据
+const refreshTableData = () => {
+  tableLoading.value = true
+  // 模拟数据刷新
+  setTimeout(() => {
+    tableLoading.value = false
+    console.log('表格数据已刷新')
+  }, 1000)
+}
+
+// 导出表格数据
+const exportTableData = () => {
+  console.log('导出表格数据')
+  // 这里可以实现导出逻辑
+}
+
+// 面板拖拽调整大小
+const startResize = (direction: string) => {
+  isResizing.value = true
+  resizeDirection.value = direction
+
+  const handleMouseMove = (e: MouseEvent) => {
+    if (!isResizing.value) return
+
+    if (direction === 'left') {
+      leftPanelWidth.value = Math.max(280, Math.min(500, e.clientX))
+    } else if (direction === 'bottom') {
+      const windowHeight = window.innerHeight
+      const newHeight = Math.max(200, Math.min(400, windowHeight - e.clientY))
+      bottomPanelHeight.value = newHeight
+    }
+  }
+
+  const handleMouseUp = () => {
+    isResizing.value = false
+    resizeDirection.value = ''
+    document.removeEventListener('mousemove', handleMouseMove)
+    document.removeEventListener('mouseup', handleMouseUp)
+
+    // 调整地图大小
+    setTimeout(() => {
+      map?.updateSize()
+    }, 50)
+  }
+
+  document.addEventListener('mousemove', handleMouseMove)
+  document.addEventListener('mouseup', handleMouseUp)
+}
+
+// 监听面板显示状态变化，动态调整地图
+watch([showLeftPanel, showBottomPanel], () => {
+  setTimeout(() => {
+    map?.updateSize()
+  }, 150)
+})
 
 const router = useRouter()
 
@@ -363,5 +695,223 @@ const handleResize = () => {
   .layer-panel-expanded {
     width: 180px;
   }
+}
+
+/* 原有样式保持不变，优化悬浮面板样式 */
+
+.pipe-network-view {
+  height: calc(100vh - 64px);
+  width: 100vw;
+  display: flex;
+  flex-direction: column;
+  background: #f8fafc;
+  overflow: hidden;
+  position: relative;
+}
+
+.map-content {
+  flex: 1;
+  display: flex;
+  height: 100%;
+  width: 100%;
+  position: relative;
+}
+
+.map-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: #e5e7eb;
+}
+
+/* 悬浮面板通用样式 */
+.floating-panel {
+  position: absolute;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(30, 111, 186, 0.2);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.3s ease;
+  border: 1px solid v-bind('gasBlueTheme.borderBlue');
+  backdrop-filter: blur(8px);
+}
+
+.floating-panel.panel-hidden {
+  opacity: 0;
+  visibility: hidden;
+  transform: scale(0.95);
+}
+
+/* 左侧树形面板 */
+.left-tree-panel {
+  left: 20px;
+  top: 20px;
+  width: v-bind(leftPanelWidth + 'px');
+  min-width: 280px;
+  max-width: 500px;
+  background: linear-gradient(135deg, v-bind('gasBlueTheme.lightBlue') 0%, white 100%);
+  border: 1px solid v-bind('gasBlueTheme.borderBlue');
+  /* 高度通过动态样式控制 */
+}
+
+/* 底部表格面板 */
+.bottom-table-panel {
+  left: 20px;
+  right: 20px;
+  bottom: 20px;
+  height: v-bind(bottomPanelHeight + 'px');
+  min-height: 200px;
+  max-height: 400px;
+  background: linear-gradient(135deg, v-bind('gasBlueTheme.lightBlue') 0%, white 100%);
+  border: 1px solid v-bind('gasBlueTheme.borderBlue');
+  /* 宽度保持不变 */
+}
+
+/* 面板头部样式 - 燃气行业蓝色主题 */
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid v-bind('gasBlueTheme.borderBlue');
+  background: linear-gradient(90deg, v-bind('gasBlueTheme.primary') 0%, v-bind('gasBlueTheme.darkBlue') 100%);
+  border-radius: 8px 8px 0 0;
+  flex-shrink: 0;
+}
+
+.panel-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 16px;
+  color: white;
+}
+
+.panel-title .el-icon {
+  color: white;
+}
+
+.panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.close-btn {
+  padding: 4px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.close-btn:hover {
+  color: white;
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+/* 面板操作按钮样式 */
+.panel-actions .el-button {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.panel-actions .el-button:hover {
+  color: white;
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+/* 面板内容区域 */
+.panel-content {
+  flex: 1;
+  overflow: hidden;
+  border-radius: 0 0 8px 8px;
+  background: transparent;
+}
+
+/* 调整大小手柄 */
+.panel-resize-handle {
+  position: absolute;
+  right: -2px;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  cursor: col-resize;
+  background: transparent;
+  transition: background-color 0.2s ease;
+  z-index: 1001;
+}
+
+.panel-resize-handle:hover {
+  background: v-bind('gasBlueTheme.primary');
+}
+
+.panel-resize-handle.vertical {
+  right: 0;
+  left: 0;
+  top: -2px;
+  bottom: auto;
+  height: 4px;
+  width: auto;
+  cursor: row-resize;
+}
+
+.panel-resize-handle.vertical:hover {
+  background: v-bind('gasBlueTheme.primary');
+}
+
+/* 地图信息显示组件位置调整 */
+.info-display-adjusted {
+  right: 80px;
+  bottom: 20px;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .left-tree-panel {
+    left: 10px;
+    right: 10px;
+    top: 10px;
+    width: auto;
+    height: 40vh;
+    min-width: unset;
+    max-width: unset;
+  }
+
+  .bottom-table-panel {
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    height: 40vh;
+  }
+
+  .panel-resize-handle.vertical {
+    display: none;
+    /* 移动端禁用垂直调整 */
+  }
+}
+
+/* 确保地图控制组件在悬浮面板之上 */
+:deep(.map-controls) {
+  z-index: 1001;
+}
+
+/* 确保动态面板容器在悬浮面板之上 */
+:deep(.dynamic-panel-container) {
+  z-index: 1001;
+}
+
+/* 优化面板重叠时的视觉效果 */
+.left-tree-panel.with-bottom-panel {
+  box-shadow: 0 4px 20px rgba(30, 111, 186, 0.3);
+}
+
+/* 为TreeStructure和DataTable组件添加燃气主题 */
+:deep(.tree-structure) {
+  --el-color-primary: v-bind('gasBlueTheme.primary');
+}
+
+:deep(.data-table-container) {
+  --el-color-primary: v-bind('gasBlueTheme.primary');
 }
 </style>

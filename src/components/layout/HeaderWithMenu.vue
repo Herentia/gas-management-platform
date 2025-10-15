@@ -168,6 +168,15 @@ const activeMenu = computed(() => {
   return path
 })
 
+const emit = defineEmits<{
+  menuClick: [key: string]
+}>()
+
+const handleMenuClick = (key: string) => {
+  emit('menuClick', key)
+  // ... 其他处理逻辑
+}
+
 // 初始化菜单
 const initMenu = () => {
   menuItems.value = [
@@ -200,7 +209,8 @@ const initMenu = () => {
 
 // 处理菜单选择
 const handleMenuSelect = (index: string) => {
-  router.push(index)
+  // router.push(index)
+  handleMenuClick(index)
 }
 
 const goHome = () => {
