@@ -19,6 +19,7 @@
     "@element-plus/icons-vue": "^2.3.2",
     "@tailwindcss/vite": "^4.1.12",
     "chart.js": "^4.5.0",
+    "echarts": "^6.0.0",
     "element-plus": "^2.11.1",
     "ol": "^10.6.1",
     "pinia": "^3.0.3",

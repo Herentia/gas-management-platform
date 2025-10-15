@@ -6,6 +6,15 @@
       <div class="map-container">
         <div id="ol-map" ref="mapContainer" class="ol-map"></div>
 
+        <!-- OpenLayers 弹窗 -->
+        <div v-if="showDeviceDetail" ref="popupElement" class="ol-popup">
+          <div class="popup-content">
+            <DeviceDetailPanel :device-data="currentDevice" :chart-data="chartData" :theme-colors="gasBlueTheme"
+              @close="closeDeviceDetail" />
+          </div>
+          <div class="popup-arrow"></div>
+        </div>
+
         <!-- 地图信息组件 -->
         <MapInfoDisplay :scale="scale" :longitude="longitude" :latitude="latitude" :altitude="altitude"
           :viewAngle="viewAngle" :viewHeight="viewHeight" class="info-display-adjusted" />
@@ -89,7 +98,142 @@ import { Style, Stroke, Circle, Fill } from 'ol/style'
 import TreeStructure from '@/components/map/TreeStructure.vue'
 import DataTable from '@/components/map/DataTable.vue'
 import { Folder, Grid, Refresh, Download, Close } from '@element-plus/icons-vue'
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+
+// 原有导入保持不变
+import DeviceDetailPanel from '@/components/device/DeviceDetailPanel.vue'
+
+// OpenLayers 弹窗相关导入
+import Overlay from 'ol/Overlay'
+
+// 新增设备详情相关数据
+const showDeviceDetail = ref(false)
+const currentDevice = ref<any>(null)
+const currentDeviceCoordinates = ref<number[]>([])
+const popupElement = ref<HTMLElement>()
+let popup: Overlay | null = null
+
+const chartData = ref({
+  accumulated: '0',
+  flowRate: '0.00',
+  temperature: '0',
+  pressure: '0.00',
+  temperatureData: [20, 25, 30, 35, 40, 45],
+  pressureData: [60, 65, 70, 75, 80, 85]
+})
+
+// 初始化弹窗
+const initPopup = () => {
+  if (!popupElement.value) return
+
+  popup = new Overlay({
+    element: popupElement.value,
+    positioning: 'bottom-center',
+    stopEvent: true, // 阻止事件传播到地图
+    offset: [0, -10],
+  })
+
+  map?.addOverlay(popup)
+}
+
+// 处理树节点点击
+const handleTreeNodeClick = async (nodeData: any) => {
+  console.log('树节点点击:', nodeData)
+
+  // 如果节点有坐标数据，聚焦到该位置并显示弹窗
+  if (nodeData.data?.coordinates && map) {
+    const coordinates = nodeData.data.coordinates
+    currentDeviceCoordinates.value = coordinates
+
+    // 聚焦到该位置
+    focusOnCoordinates(coordinates)
+
+    // 显示设备详情弹窗（如果是设备节点）
+    if (nodeData.type && ['station', 'valve', 'monitor'].includes(nodeData.type)) {
+      await showDeviceDetailForNode(nodeData, coordinates)
+    }
+  }
+}
+
+// 显示设备详情
+const showDeviceDetailForNode = async (nodeData: any, coordinates: number[]) => {
+  console.log('显示设备详情:', nodeData)
+  // 模拟设备数据
+  currentDevice.value = {
+    id: nodeData.id,
+    name: nodeData.label,
+    type: getDeviceTypeName(nodeData.type),
+    status: '正常',
+    location: `${coordinates[0]?.toFixed(4)}, ${coordinates[1]?.toFixed(4)}`,
+    updateTime: new Date().toLocaleString('zh-CN')
+  }
+
+  // 模拟实时数据更新
+  updateRealtimeData()
+
+  // 确保DOM更新完成
+  await nextTick()
+
+  // 显示弹窗
+  showDeviceDetail.value = true
+  if (popup && map) {
+    const pixelCoordinates = fromLonLat(coordinates)
+    popup.setPosition(pixelCoordinates)
+  }
+}
+
+// 关闭设备详情
+const closeDeviceDetail = () => {
+  showDeviceDetail.value = false
+  if (popup) {
+    popup.setPosition(undefined)
+  }
+  currentDevice.value = null
+}
+
+// 获取设备类型名称
+const getDeviceTypeName = (type: string) => {
+  const typeMap: Record<string, string> = {
+    'station': '调压站',
+    'valve': '阀门',
+    'monitor': '监测点',
+    'pipeline': '管线'
+  }
+  return typeMap[type] || '设备'
+}
+
+// 更新实时数据（模拟）
+const updateRealtimeData = () => {
+  // 模拟实时数据变化
+  chartData.value = {
+    accumulated: Math.floor(Math.random() * 1000).toString(),
+    flowRate: (Math.random() * 100).toFixed(2),
+    temperature: Math.floor(Math.random() * 50).toString(),
+    pressure: (Math.random() * 100).toFixed(2),
+    temperatureData: Array(6).fill(0).map(() => Math.floor(Math.random() * 50)),
+    pressureData: Array(6).fill(0).map(() => Math.floor(Math.random() * 50) + 50)
+  }
+}
+
+// 聚焦到坐标位置
+const focusOnCoordinates = (coordinates: any) => {
+  if (!map) return
+
+  const view = map.getView()
+
+  if (Array.isArray(coordinates[0])) {
+    // 处理线状要素（管线）
+    const extent = new LineString(coordinates.map((coord: number[]) => fromLonLat(coord))).getExtent()
+    view.fit(extent, { duration: 500, padding: [50, 50, 50, 50] })
+  } else {
+    // 处理点状要素
+    view.animate({
+      center: fromLonLat(coordinates),
+      zoom: 15,
+      duration: 500
+    })
+  }
+}
 
 // 新增响应式数据
 const showLeftPanel = ref(false)
@@ -258,7 +402,6 @@ const handleMenuClick = (menuKey: string) => {
   switch (menuKey) {
     case '/pipe-network/gas-source':
       showLeftPanel.value = !showLeftPanel.value
-      showBottomPanel.value = !showBottomPanel.value
       break
     case 'data-list':
       showBottomPanel.value = !showBottomPanel.value
@@ -279,14 +422,14 @@ const handleMenuClick = (menuKey: string) => {
 }
 
 // 处理树节点点击
-const handleTreeNodeClick = (nodeData: any) => {
-  console.log('树节点点击:', nodeData)
+// const handleTreeNodeClick = (nodeData: any) => {
+//   console.log('树节点点击:', nodeData)
 
-  // 如果节点有坐标数据，聚焦到该位置
-  if (nodeData.data?.coordinates && map) {
-    focusOnCoordinates(nodeData.data.coordinates)
-  }
-}
+//   // 如果节点有坐标数据，聚焦到该位置
+//   if (nodeData.data?.coordinates && map) {
+//     focusOnCoordinates(nodeData.data.coordinates)
+//   }
+// }
 
 // 处理表格行点击
 const handleTableRowClick = (rowData: any) => {
@@ -299,24 +442,24 @@ const handleTableRowClick = (rowData: any) => {
 }
 
 // 聚焦到坐标位置
-const focusOnCoordinates = (coordinates: any) => {
-  if (!map) return
+// const focusOnCoordinates = (coordinates: any) => {
+//   if (!map) return
 
-  const view = map.getView()
+//   const view = map.getView()
 
-  if (Array.isArray(coordinates[0])) {
-    // 处理线状要素（管线）
-    const extent = new LineString(coordinates.map((coord: number[]) => fromLonLat(coord))).getExtent()
-    view.fit(extent, { duration: 500, padding: [50, 50, 50, 50] })
-  } else {
-    // 处理点状要素
-    view.animate({
-      center: fromLonLat(coordinates),
-      zoom: 15,
-      duration: 500
-    })
-  }
-}
+//   if (Array.isArray(coordinates[0])) {
+//     // 处理线状要素（管线）
+//     const extent = new LineString(coordinates.map((coord: number[]) => fromLonLat(coord))).getExtent()
+//     view.fit(extent, { duration: 500, padding: [50, 50, 50, 50] })
+//   } else {
+//     // 处理点状要素
+//     view.animate({
+//       center: fromLonLat(coordinates),
+//       zoom: 15,
+//       duration: 500
+//     })
+//   }
+// }
 
 // 刷新表格数据
 const refreshTableData = () => {
@@ -454,6 +597,8 @@ const initMap = () => {
 
   // 监听地图视图变化，更新坐标信息
   map.getView().on('change', updateMapInfo)
+
+  initPopup()
 
   // 确保地图正确渲染
   setTimeout(() => {
@@ -913,5 +1058,58 @@ const handleResize = () => {
 
 :deep(.data-table-container) {
   --el-color-primary: v-bind('gasBlueTheme.primary');
+}
+
+/* 修改主组件中的弹窗样式 */
+.ol-popup {
+  position: absolute;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  border: 2px solid #1E6FBA;
+  /* 直接使用颜色值 */
+  min-width: 400px;
+  max-width: 800px;
+  z-index: 1002;
+  transform: translate(-50%, -100%);
+  cursor: default;
+}
+
+.popup-content {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.popup-arrow {
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  border-top: 10px solid #1E6FBA;
+  /* 直接使用颜色值 */
+}
+
+/* 确保弹窗在面板之上 */
+.ol-popup {
+  z-index: 1002;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .ol-popup {
+    min-width: 300px;
+    max-width: calc(100vw - 40px);
+    left: 20px !important;
+    right: 20px !important;
+    transform: translate(0, -100%) !important;
+  }
+
+  .popup-arrow {
+    left: 50%;
+  }
 }
 </style>
