@@ -17,6 +17,11 @@
 
         <DynamicPanelContainer />
 
+        <!-- 管网类型面板 -->
+        <PipeTypePanel v-if="showPipeTypePanel" :position="pipeTypePanelPosition" :size="pipeTypePanelSize"
+          :theme-colors="gasBlueTheme" @close="showPipeTypePanel = false" @filter-change="handlePipeTypeFilterChange"
+          @minimize="handlePipeTypeMinimize" />
+
         <!-- 新增：气源压力运行状态面板 -->
         <div class="floating-panel left-gas-status-panel"
           :class="{ 'panel-hidden': !showGasStatusPanel, 'with-bottom-panel': showBottomPanel }"
@@ -122,6 +127,71 @@ import Overlay from 'ol/Overlay'
 import { DataLine } from '@element-plus/icons-vue'
 import GasStatusPanel from '@/components/map/GasStatusPanel.vue'
 
+// 新增导入
+import PipeTypePanel from '@/components/map/PipeTypePanel.vue'
+
+import OfficialInfoPopup from '@/components/map/OfficialInfoPopup.vue'
+import type { Nullable } from 'element-plus/lib/components/cascader-panel/src/node.js'
+
+// 管网类型面板
+// 新增响应式数据
+const showPipeTypePanel = ref(false)
+// 修改管线类型面板位置
+const pipeTypePanelPosition = ref({
+  right: '20px',
+  top: '20px'
+})
+// 设置面板宽高
+const pipeTypePanelSize = ref({
+  width: 800,  // 可以自定义宽度
+  height: 500  // 可以自定义高度
+})
+
+// 处理管网类型筛选变化
+const handlePipeTypeFilterChange = (filters: any) => {
+  console.log('管网类型筛选变化:', filters)
+  // 这里可以根据筛选条件更新地图显示
+  updateMapWithPipeFilters(filters)
+}
+
+// 处理面板最小化
+const handlePipeTypeMinimize = (minimized: boolean) => {
+  console.log('管网类型面板最小化:', minimized)
+  // 可以在这里添加最小化后的逻辑
+}
+
+// 根据筛选条件更新地图
+const updateMapWithPipeFilters = (filters: any) => {
+  if (!map || !vectorLayer) return
+
+  // 这里可以根据筛选条件更新矢量图层的样式或显示/隐藏某些要素
+  console.log('根据筛选条件更新地图显示', filters)
+
+  // 示例：更新图层样式
+  const source = vectorLayer.getSource()
+  if (source) {
+    // 可以根据筛选条件设置不同的样式
+    vectorLayer.setStyle((feature) => {
+      const featureType = feature.get('type')
+      // 根据筛选条件返回不同的样式
+      return createPipeStyle(featureType, filters)
+    })
+  }
+}
+
+// 创建管道样式（示例）
+const createPipeStyle = (featureType: string, filters: any) => {
+  // 根据筛选条件和要素类型创建不同的样式
+  // 这里需要根据实际的数据结构来实现
+  return new Style({
+    stroke: new Stroke({
+      color: '#165DFF',
+      width: 3
+    })
+  })
+}
+
+// 气源状态面板
 // 新增响应式数据
 const showGasStatusPanel = ref(false)
 const gasStatusPanelWidth = ref(320)
@@ -365,6 +435,7 @@ const createDevicePopup = async (deviceId: string, deviceData: any, chartData: a
     // 使用 Vue 渲染组件内容
     const { createApp } = await import('vue')
 
+
     // 创建 Vue 应用
     const app = createApp(DeviceDetailPanel, {
       deviceData,
@@ -372,6 +443,7 @@ const createDevicePopup = async (deviceId: string, deviceData: any, chartData: a
       themeColors: gasBlueTheme,
       onClose: () => removeDevicePopup(deviceId)
     })
+
 
     // 挂载到弹窗内容容器
     app.mount(popupContent)
@@ -648,34 +720,78 @@ const tableData = ref([
     status: '正常',
     location: '116.3974, 39.9093',
     updateTime: '2024-01-20 10:30:00',
-    data: { coordinates: [[116.3974, 39.9093], [116.4074, 39.9193]] }
+    data: {
+      coordinates: [[116.3974, 39.9093], [116.4074, 39.9193]],
+      officialInfo: {
+        name: '北线主干管-001',
+        material: '镀锌钢管',
+        years: '1年-5年',
+        pressureLevel: '高压管道',
+        anticorrosion: '3PE防腐',
+        diameter: '钢质DN22',
+        other: '停用管线'
+      }
+    }
   },
   {
     id: '2',
-    name: '调压站-A01',
-    type: '设备',
+    name: '北线主干管-002',
+    type: '管线',
     status: '正常',
     location: '116.4074, 39.9193',
     updateTime: '2024-01-20 09:15:00',
-    data: { coordinates: [116.4074, 39.9193] }
+    data: {
+      coordinates: [116.4074, 39.9193],
+      officialInfo: {
+        name: '调压站-A01',
+        material: '无缝钢管',
+        years: '6年-10年',
+        pressureLevel: '中压管道',
+        anticorrosion: '普通PE防腐',
+        diameter: '钢质DN57',
+        other: '-'
+      }
+    }
   },
   {
     id: '3',
-    name: '压力监测点-P001',
-    type: '监测点',
+    name: '北线主干管-002',
+    type: '管线',
     status: '警告',
     location: '116.4174, 39.9093',
     updateTime: '2024-01-20 11:20:00',
-    data: { coordinates: [116.4174, 39.9093] }
+    data: {
+      coordinates: [116.4174, 39.9093],
+      officialInfo: {
+        name: '压力监测点-P001',
+        material: 'PE管道',
+        years: '1年-5年',
+        pressureLevel: '低压管道',
+        anticorrosion: '抗UV漆',
+        diameter: 'PE De32',
+        other: '-'
+      }
+    }
   },
   {
     id: '4',
-    name: '阀门-V001',
-    type: '阀门',
+    name: '北线主干管-004',
+    type: '管线',
     status: '正常',
     location: '116.4024, 39.9143',
     updateTime: '2024-01-20 08:45:00',
-    data: { coordinates: [116.4024, 39.9143] }
+    data: {
+      coordinates: [116.4024, 39.9143],
+      officialInfo: {
+        name: '阀门-V001',
+        material: '镀锌钢管',
+        years: '11年-15年',
+        pressureLevel: '高压管道',
+        anticorrosion: '沥青防腐',
+        diameter: '钢质DN32',
+        other: '占压管线'
+      }
+    }
   }
 ])
 
@@ -691,6 +807,7 @@ const handleMenuClick = (menuKey: string) => {
    * 树形结构面板 showLeftPanel.value = !showLeftPanel.value
    * 气源设备状态面板 showGasStatusPanel.value = !showGasStatusPanel.value
    * 底部表格面板 showBottomPanel.value = !showBottomPanel.value
+   * 管网类型面板 showPipeTypePanel.value = !showPipeTypePanel.value
    */
   switch (menuKey) {
     case '/pipe-network/gas-source':
@@ -700,6 +817,7 @@ const handleMenuClick = (menuKey: string) => {
       showGasStatusPanel.value = !showGasStatusPanel.value
       break
     case '/pipe-network/distribution':
+      showPipeTypePanel.value = !showPipeTypePanel.value
       showBottomPanel.value = !showBottomPanel.value
       break
     case 'full-analysis':
@@ -728,34 +846,115 @@ const handleMenuClick = (menuKey: string) => {
 // }
 
 // 处理表格行点击
-const handleTableRowClick = (rowData: any) => {
+const handleTableRowClick = async (rowData: any) => {
   console.log('表格行点击:', rowData)
 
   // 如果行数据有坐标，聚焦到该位置
   if (rowData.data?.coordinates && map) {
     focusOnCoordinates(rowData.data.coordinates)
+
+    // 显示官网信息弹窗
+    if (rowData.data.officialInfo) {
+      await showOfficialInfoPopup(rowData.data.officialInfo, rowData.data.coordinates)
+      // const popupId = `official_info_${Date.now()}`
+      // await createDevicePopup(popupId, rowData.data.officialInfo, null, rowData.data.coordinates)
+    }
   }
 }
 
-// 聚焦到坐标位置
-// const focusOnCoordinates = (coordinates: any) => {
-//   if (!map) return
+// 显示官网信息弹窗
+const showOfficialInfoPopup = async (officialInfo: any, coordinates: number[]) => {
+  const popupId = `official_info_${Date.now()}`
 
-//   const view = map.getView()
+  // 如果弹窗已存在，先移除
+  if (hasDevicePopup(popupId)) {
+    removeDevicePopup(popupId)
+  }
 
-//   if (Array.isArray(coordinates[0])) {
-//     // 处理线状要素（管线）
-//     const extent = new LineString(coordinates.map((coord: number[]) => fromLonLat(coord))).getExtent()
-//     view.fit(extent, { duration: 500, padding: [50, 50, 50, 50] })
-//   } else {
-//     // 处理点状要素
-//     view.animate({
-//       center: fromLonLat(coordinates),
-//       zoom: 15,
-//       duration: 500
-//     })
-//   }
-// }
+  try {
+    // 创建弹窗容器
+    const popupElement = document.createElement('div')
+    popupElement.className = 'ol-popup official-info-popup-container'
+    popupElement.style.cssText = `
+      position: absolute;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+      border: 1px solid ${gasBlueTheme.primary};
+      width: 420px;
+      max-width: 450px;
+      min-width: 380px;
+      z-index: 1002;
+      transform: translate(-50%, -100%);
+      cursor: default;
+      font-size: 12px;
+      overflow: hidden;
+    `
+
+    // 创建弹窗内容容器
+    const popupContent = document.createElement('div')
+    popupContent.className = 'popup-content'
+    popupContent.style.cssText = `
+      max-height: 500px;
+      overflow: hidden;
+    `
+
+    // 组装弹窗
+    popupElement.appendChild(popupContent)
+
+    // 创建 Overlay
+    const overlay = new Overlay({
+      element: popupElement,
+      positioning: 'bottom-center',
+      stopEvent: true,
+      offset: [0, -8],
+    })
+
+    // 设置位置
+    const pixelCoordinates = fromLonLat(coordinates)
+    overlay.setPosition(pixelCoordinates)
+
+    // 添加到地图
+    if (map) {
+      map.addOverlay(overlay)
+    }
+
+    // 使用 Vue 渲染组件内容
+    const { createApp } = await import('vue')
+
+    console.log('创建官网信息弹窗 Vue 应用', officialInfo)
+    // 创建 Vue 应用
+    const app = createApp(OfficialInfoPopup, {
+      infoData: officialInfo,
+      themeColors: gasBlueTheme,
+      onClose: () => removeDevicePopup(popupId),
+      onViewDetail: (data) => {
+        console.log('查看详情:', data)
+        // 这里可以跳转到详情页面或显示更详细的信息
+        // 例如：router.push(`/detail/${data.name}`)
+      }
+    })
+
+    // 挂载到弹窗内容容器
+    app.mount(popupContent)
+
+    // 存储弹窗引用
+    const popupInfo: PopupInfo = {
+      overlay,
+      element: popupElement,
+      app
+    }
+
+    setDevicePopup(popupId, popupInfo)
+
+    console.log(`管网信息弹窗 ${popupId} 创建成功`)
+    return overlay
+
+  } catch (error) {
+    console.error('创建官网信息弹窗失败:', error)
+    return null
+  }
+}
 
 // 刷新表格数据
 const refreshTableData = () => {
@@ -1435,6 +1634,23 @@ const handleResize = () => {
     height: 40vh;
     min-width: unset;
     max-width: unset;
+  }
+}
+
+/* 确保管网类型面板的z-index正确 */
+:deep(.pipe-type-panel) {
+  z-index: 1000;
+}
+
+/* 如果有多个面板，确保它们不会重叠 */
+@media (min-width: 1200px) {
+  .left-tree-panel {
+    left: 20px;
+  }
+
+  .left-gas-status-panel {
+    left: 340px;
+    /* 树形面板宽度 + 间距 */
   }
 }
 </style>
