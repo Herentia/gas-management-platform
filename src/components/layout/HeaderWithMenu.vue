@@ -182,13 +182,13 @@ const initMenu = () => {
   menuItems.value = [
     {
       id: 1,
-      title: '管网监控',
+      title: '气源流量压力监测',
       path: '/pipe-network/gas-source',
       icon: markRaw(Monitor)
     },
     {
       id: 2,
-      title: '末端监测',
+      title: '末端流量压力监测',
       path: '/pipe-network/end-point',
       icon: markRaw(Monitor)
     },

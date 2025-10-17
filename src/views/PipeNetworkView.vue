@@ -17,6 +17,28 @@
 
         <DynamicPanelContainer />
 
+        <!-- 新增：气源压力运行状态面板 -->
+        <div class="floating-panel left-gas-status-panel"
+          :class="{ 'panel-hidden': !showGasStatusPanel, 'with-bottom-panel': showBottomPanel }"
+          :style="gasStatusPanelStyle">
+          <div class="panel-header">
+            <div class="panel-title">
+              <el-icon>
+                <DataLine />
+              </el-icon>
+              <span>气源压力运行</span>
+            </div>
+            <div class="panel-actions">
+              <el-button link :icon="Close" @click="showGasStatusPanel = false" class="close-btn" />
+            </div>
+          </div>
+          <div class="panel-content">
+            <GasStatusPanel :data="gasStatusDevices" @device-click="handleGasDeviceClick" @search="handleGasSearch"
+              @status-change="handleGasStatusChange" @export="exportGasStatusData" v-if="showGasStatusPanel" />
+          </div>
+          <div class="panel-resize-handle" @mousedown="startResize('gasStatus')"></div>
+        </div>
+
         <!-- 左侧树形结构悬浮面板 -->
         <div class="floating-panel left-tree-panel"
           :class="{ 'panel-hidden': !showLeftPanel, 'with-bottom-panel': showBottomPanel }" :style="leftPanelStyle">
@@ -93,9 +115,163 @@ import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 
 // 原有导入保持不变
 import DeviceDetailPanel from '@/components/device/DeviceDetailPanel.vue'
-
 // OpenLayers 弹窗相关导入
 import Overlay from 'ol/Overlay'
+
+// 新增导入
+import { DataLine } from '@element-plus/icons-vue'
+import GasStatusPanel from '@/components/map/GasStatusPanel.vue'
+
+// 新增响应式数据
+const showGasStatusPanel = ref(false)
+const gasStatusPanelWidth = ref(320)
+
+// 气源压力设备数据
+const gasStatusDevices = null;
+// const gasStatusDevices = ref([
+//   {
+//     id: 'FC1',
+//     name: 'FC1',
+//     status: 'normal' as const,
+//     pressure: '0.85',
+//     temperature: '25.3',
+//     coordinates: [116.3974, 39.9093],
+//     data: {
+//       type: 'pressure_station',
+//       model: 'PCS-1000',
+//       installDate: '2023-01-15'
+//     }
+//   },
+//   {
+//     id: 'FC2',
+//     name: 'FC2',
+//     status: 'normal' as const,
+//     pressure: '0.85',
+//     temperature: '25.3',
+//     coordinates: [116.3974, 38.9093],
+//     data: {
+//       type: 'pressure_station',
+//       model: 'PCS-1000',
+//       installDate: '2023-01-15'
+//     }
+//   },
+//   {
+//     id: 'FC3',
+//     name: 'FC3',
+//     status: 'normal' as const,
+//     pressure: '0.85',
+//     temperature: '25.3',
+//     coordinates: [116.3974, 39.9093],
+//     data: {
+//       type: 'pressure_station',
+//       model: 'PCS-1000',
+//       installDate: '2023-01-15'
+//     }
+//   },
+//   {
+//     id: 'FC4',
+//     name: 'FC4',
+//     status: 'normal' as const,
+//     pressure: '0.85',
+//     temperature: '25.3',
+//     coordinates: [116.3974, 39.9093],
+//     data: {
+//       type: 'pressure_station',
+//       model: 'PCS-1000',
+//       installDate: '2023-01-15'
+//     }
+//   },
+//   // ... 其他设备数据
+// ])
+
+// 面板样式
+const gasStatusPanelStyle = computed(() => {
+  const style: any = {
+    width: `${gasStatusPanelWidth.value}px`
+  }
+
+  if (showBottomPanel.value && showGasStatusPanel.value) {
+    const bottomPanelVisibleHeight = bottomPanelHeight.value + 40
+    style.height = `calc(100% - ${bottomPanelVisibleHeight}px)`
+  } else {
+    style.height = 'calc(100% - 40px)'
+  }
+
+  return style
+})
+
+// 气源压力面板事件处理
+const handleGasDeviceClick = async (device: any) => {
+  console.log('气源压力设备点击:', device)
+
+  // 聚焦到设备位置
+  if (device.coordinates && map) {
+    focusOnCoordinates(device.coordinates)
+
+    // 显示设备详情弹窗
+    await showGasDeviceDetail(device)
+  }
+}
+
+const handleGasSearch = (keyword: string) => {
+  console.log('气源压力搜索:', keyword)
+  // 可以在这里添加搜索逻辑
+}
+
+const handleGasStatusChange = (status: string) => {
+  console.log('气源压力状态变化:', status)
+  // 可以在这里添加状态筛选逻辑
+}
+
+const exportGasStatusData = () => {
+  console.log('导出气源压力数据')
+  const dataToExport = gasStatusDevices.value.map(device => ({
+    设备名称: device.name,
+    状态: device.status === 'normal' ? '正常' : '异常',
+    压力值: device.pressure + ' MPa',
+    温度: device.temperature + ' °C'
+  }))
+
+  console.log('导出数据:', dataToExport)
+  // 实际项目中可以使用第三方库如 xlsx 来导出 Excel
+}
+
+// 显示气源设备详情
+const showGasDeviceDetail = async (device: any, coordinates?: number[]) => {
+  const deviceCoords = coordinates || device.coordinates
+  const deviceId = `gas_${device.id}`
+
+  console.log('显示气源设备详情:', device.name, '设备ID:', deviceId)
+
+  // 创建设备数据
+  const deviceData = {
+    id: deviceId,
+    name: device.name,
+    type: '压力监测站',
+    status: device.status === 'normal' ? '正常' : '异常',
+    location: `${deviceCoords[0]?.toFixed(4)}, ${deviceCoords[1]?.toFixed(4)}`,
+    updateTime: new Date().toLocaleString('zh-CN'),
+    pressure: device.pressure,
+    temperature: device.temperature,
+    ...device.data
+  }
+
+  // 创建图表数据
+  const chartData = {
+    accumulated: Math.floor(Math.random() * 1000).toString(),
+    flowRate: device.pressure,
+    temperature: device.temperature,
+    pressure: device.pressure,
+    temperatureData: Array(6).fill(0).map(() => Math.floor(Math.random() * 50)),
+    pressureData: Array(6).fill(0).map(() => (Math.random() * 2).toFixed(2))
+  }
+
+  // 创建设备弹窗
+  await createDevicePopup(deviceId, deviceData, chartData, deviceCoords)
+}
+
+
+
 
 // 设备弹窗管理 - 使用普通对象而不是 Map
 interface PopupInfo {
@@ -511,11 +687,19 @@ const handleMenuClick = (menuKey: string) => {
   activeMenu.value = menuKey
 
   // 根据菜单键值控制面板显示
+  /**
+   * 树形结构面板 showLeftPanel.value = !showLeftPanel.value
+   * 气源设备状态面板 showGasStatusPanel.value = !showGasStatusPanel.value
+   * 底部表格面板 showBottomPanel.value = !showBottomPanel.value
+   */
   switch (menuKey) {
     case '/pipe-network/gas-source':
-      showLeftPanel.value = !showLeftPanel.value
+      showGasStatusPanel.value = !showGasStatusPanel.value
       break
-    case 'data-list':
+    case '/pipe-network/end-point':
+      showGasStatusPanel.value = !showGasStatusPanel.value
+      break
+    case '/pipe-network/distribution':
       showBottomPanel.value = !showBottomPanel.value
       break
     case 'full-analysis':
@@ -1227,6 +1411,30 @@ const handleResize = () => {
 
   .popup-arrow {
     left: 50%;
+  }
+}
+
+/* 新增气源压力面板样式 */
+.left-gas-status-panel {
+  left: 20px;
+  top: 20px;
+  width: v-bind(gasStatusPanelWidth + 'px');
+  min-width: 280px;
+  max-width: 500px;
+  background: linear-gradient(135deg, v-bind('gasBlueTheme.lightBlue') 0%, white 100%);
+  border: 1px solid v-bind('gasBlueTheme.borderBlue');
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .left-gas-status-panel {
+    left: 10px;
+    right: 10px;
+    top: 10px;
+    width: auto;
+    height: 40vh;
+    min-width: unset;
+    max-width: unset;
   }
 }
 </style>
