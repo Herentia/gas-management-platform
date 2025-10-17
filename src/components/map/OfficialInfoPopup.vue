@@ -2,7 +2,7 @@
   <div class="official-info-popup">
     <!-- 头部 -->
     <div class="popup-header">
-      <h3 class="popup-title">官网信息</h3>
+      <h3 class="popup-title">管网信息</h3>
       <el-button link :icon="Close" @click="handleClose" class="close-btn" />
     </div>
 
@@ -10,11 +10,11 @@
     <div class="popup-content">
       <div class="info-table">
         <div class="info-row">
-          <div class="info-label">官网名称：</div>
+          <div class="info-label">管网名称：</div>
           <div class="info-value">{{ infoData.name || '-' }}</div>
         </div>
         <div class="info-row">
-          <div class="info-label">官网材质：</div>
+          <div class="info-label">管网材质：</div>
           <div class="info-value">{{ infoData.material || '-' }}</div>
         </div>
         <div class="info-row">
@@ -92,7 +92,7 @@ const handleViewDetail = () => {
 
 <style scoped>
 .official-info-popup {
-  width: 400px;
+  /* width: 400px; */
   background: white;
   border-radius: 8px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
@@ -104,7 +104,7 @@ const handleViewDetail = () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 20px;
+  padding: 0px 20px;
   background: linear-gradient(90deg, v-bind('props.themeColors.primary') 0%, #165B9C 100%);
   color: white;
 }
@@ -137,8 +137,8 @@ const handleViewDetail = () => {
 .info-row {
   display: flex;
   align-items: flex-start;
-  margin-bottom: 16px;
-  padding-bottom: 12px;
+  margin-bottom: 4px;
+  padding-bottom: 3px;
   border-bottom: 1px solid #f0f0f0;
 }
 

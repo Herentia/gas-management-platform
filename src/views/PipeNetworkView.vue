@@ -851,27 +851,29 @@ const handleTableRowClick = async (rowData: any) => {
 
   // 如果行数据有坐标，聚焦到该位置
   if (rowData.data?.coordinates && map) {
+    // 先移除所有现有的弹窗
+    removeAllDevicePopups()
+
+    // 聚焦到坐标位置
     focusOnCoordinates(rowData.data.coordinates)
 
     // 显示官网信息弹窗
     if (rowData.data.officialInfo) {
-      await showOfficialInfoPopup(rowData.data.officialInfo, rowData.data.coordinates)
-      // const popupId = `official_info_${Date.now()}`
-      // await createDevicePopup(popupId, rowData.data.officialInfo, null, rowData.data.coordinates)
+      // 给地图动画一点时间完成
+      setTimeout(() => {
+        showOfficialInfoPopup(rowData.data.officialInfo, rowData.data.coordinates)
+      }, 500)
     }
   }
 }
 
 // 显示官网信息弹窗
-const showOfficialInfoPopup = async (officialInfo: any, coordinates: number[]) => {
+const showOfficialInfoPopup = async (officialInfo: any, coordinates: any) => {
   const popupId = `official_info_${Date.now()}`
 
-  // 如果弹窗已存在，先移除
-  if (hasDevicePopup(popupId)) {
-    removeDevicePopup(popupId)
-  }
-
   try {
+    console.log('开始创建管网信息弹窗，坐标:', coordinates)
+
     // 创建弹窗容器
     const popupElement = document.createElement('div')
     popupElement.className = 'ol-popup official-info-popup-container'
@@ -881,10 +883,11 @@ const showOfficialInfoPopup = async (officialInfo: any, coordinates: number[]) =
       border-radius: 8px;
       box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
       border: 1px solid ${gasBlueTheme.primary};
-      width: 420px;
+      width: 320px;
       max-width: 450px;
-      min-width: 380px;
-      z-index: 1002;
+      min-width: 280px;
+      height: 300px;
+      z-index: 1003;
       transform: translate(-50%, -100%);
       cursor: default;
       font-size: 12px;
@@ -907,31 +910,46 @@ const showOfficialInfoPopup = async (officialInfo: any, coordinates: number[]) =
       element: popupElement,
       positioning: 'bottom-center',
       stopEvent: true,
-      offset: [0, -8],
+      offset: [0, -10],
     })
 
-    // 设置位置
-    const pixelCoordinates = fromLonLat(coordinates)
+    // 设置位置 - 修复坐标处理
+    let pixelCoordinates
+    if (Array.isArray(coordinates) && Array.isArray(coordinates[0])) {
+      // 如果是线状要素（管线），取第一个点作为弹窗位置
+      console.log('线状要素，使用第一个点坐标:', coordinates[0])
+      pixelCoordinates = fromLonLat(coordinates[0])
+    } else {
+      // 如果是点状要素
+      console.log('点状要素，使用坐标:', coordinates)
+      pixelCoordinates = fromLonLat(coordinates)
+    }
+
+    console.log('弹窗位置像素坐标:', pixelCoordinates)
     overlay.setPosition(pixelCoordinates)
 
     // 添加到地图
     if (map) {
       map.addOverlay(overlay)
+      console.log('弹窗已添加到地图')
     }
 
     // 使用 Vue 渲染组件内容
     const { createApp } = await import('vue')
 
     console.log('创建官网信息弹窗 Vue 应用', officialInfo)
+
     // 创建 Vue 应用
     const app = createApp(OfficialInfoPopup, {
       infoData: officialInfo,
       themeColors: gasBlueTheme,
-      onClose: () => removeDevicePopup(popupId),
+      onClose: () => {
+        console.log('关闭管网信息弹窗')
+        removeDevicePopup(popupId)
+      },
       onViewDetail: (data) => {
         console.log('查看详情:', data)
         // 这里可以跳转到详情页面或显示更详细的信息
-        // 例如：router.push(`/detail/${data.name}`)
       }
     })
 
@@ -947,12 +965,15 @@ const showOfficialInfoPopup = async (officialInfo: any, coordinates: number[]) =
 
     setDevicePopup(popupId, popupInfo)
 
-    console.log(`管网信息弹窗 ${popupId} 创建成功`)
-    return overlay
+    console.log(`管网信息弹窗 ${popupId} 创建成功`, popupElement)
+
+    // 确保地图更新
+    setTimeout(() => {
+      map?.updateSize()
+    }, 100)
 
   } catch (error) {
     console.error('创建官网信息弹窗失败:', error)
-    return null
   }
 }
 
@@ -1646,11 +1667,6 @@ const handleResize = () => {
 @media (min-width: 1200px) {
   .left-tree-panel {
     left: 20px;
-  }
-
-  .left-gas-status-panel {
-    left: 340px;
-    /* 树形面板宽度 + 间距 */
   }
 }
 </style>
