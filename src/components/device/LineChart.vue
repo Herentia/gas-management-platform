@@ -12,7 +12,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  height: 300
+  height: 180
 })
 
 const chartRef = ref<HTMLElement>()
@@ -31,18 +31,28 @@ const initChart = () => {
       trigger: 'axis',
       axisPointer: {
         type: 'cross'
+      },
+      confine: true,
+      textStyle: {
+        fontSize: 11
       }
     },
     legend: {
       data: ['温度', '压力'],
-      top: 0,
-      right: 10
+      top: 5,
+      right: 10,
+      textStyle: {
+        fontSize: 10
+      },
+      itemWidth: 10,
+      itemHeight: 6,
+      itemGap: 8
     },
     grid: {
-      left: '3%',
-      right: '4%',
-      bottom: '3%',
-      top: '15%',
+      left: '8%',
+      right: '8%',
+      bottom: '8%',
+      top: '20%',
       containLabel: true
     },
     xAxis: {
@@ -53,36 +63,63 @@ const initChart = () => {
         lineStyle: {
           color: '#999'
         }
+      },
+      axisLabel: {
+        fontSize: 9,
+        color: '#666'
       }
     },
     yAxis: [
       {
         type: 'value',
-        name: '温度 (°C)',
+        name: '°C',
         position: 'left',
         axisLine: {
+          show: true,
           lineStyle: {
             color: '#ff6b6b'
           }
         },
         axisLabel: {
-          formatter: '{value} °C'
+          fontSize: 9,
+          formatter: '{value}',
+          color: '#666'
         },
-        max: 100
+        splitLine: {
+          lineStyle: {
+            color: '#f0f0f0',
+            type: 'dashed'
+          }
+        },
+        max: 100,
+        nameTextStyle: {
+          fontSize: 9,
+          color: '#666'
+        }
       },
       {
         type: 'value',
-        name: '压力 (kPa)',
+        name: 'kPa',
         position: 'right',
         axisLine: {
+          show: true,
           lineStyle: {
             color: '#4ecdc4'
           }
         },
         axisLabel: {
-          formatter: '{value} kPa'
+          fontSize: 9,
+          formatter: '{value}',
+          color: '#666'
         },
-        max: 100
+        splitLine: {
+          show: false
+        },
+        max: 100,
+        nameTextStyle: {
+          fontSize: 9,
+          color: '#666'
+        }
       }
     ],
     series: [
@@ -94,15 +131,17 @@ const initChart = () => {
         smooth: true,
         lineStyle: {
           color: '#ff6b6b',
-          width: 3
+          width: 2
         },
         itemStyle: {
           color: '#ff6b6b'
         },
+        symbol: 'circle',
+        symbolSize: 4,
         areaStyle: {
           color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
             { offset: 0, color: 'rgba(255, 107, 107, 0.3)' },
-            { offset: 1, color: 'rgba(255, 107, 107, 0.1)' }
+            { offset: 1, color: 'rgba(255, 107, 107, 0.05)' }
           ])
         }
       },
@@ -114,15 +153,17 @@ const initChart = () => {
         smooth: true,
         lineStyle: {
           color: '#4ecdc4',
-          width: 3
+          width: 2
         },
         itemStyle: {
           color: '#4ecdc4'
         },
+        symbol: 'circle',
+        symbolSize: 4,
         areaStyle: {
           color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
             { offset: 0, color: 'rgba(78, 205, 196, 0.3)' },
-            { offset: 1, color: 'rgba(78, 205, 196, 0.1)' }
+            { offset: 1, color: 'rgba(78, 205, 196, 0.05)' }
           ])
         }
       }
@@ -165,7 +206,3 @@ const handleResize = () => {
   chart?.resize()
 }
 </script>
-
-<style scoped>
-/* 图表容器样式 */
-</style>

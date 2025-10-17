@@ -6,24 +6,15 @@
       <div class="map-container">
         <div id="ol-map" ref="mapContainer" class="ol-map"></div>
 
-        <!-- OpenLayers 弹窗 -->
-        <div v-if="showDeviceDetail" ref="popupElement" class="ol-popup">
-          <div class="popup-content">
-            <DeviceDetailPanel :device-data="currentDevice" :chart-data="chartData" :theme-colors="gasBlueTheme"
-              @close="closeDeviceDetail" />
-          </div>
-          <div class="popup-arrow"></div>
-        </div>
+        <!-- 移除了固定的弹窗元素，弹窗将通过JS动态创建 -->
 
-        <!-- 地图信息组件 -->
+        <!-- 其他组件保持不变 -->
         <MapInfoDisplay :scale="scale" :longitude="longitude" :latitude="latitude" :altitude="altitude"
           :viewAngle="viewAngle" :viewHeight="viewHeight" class="info-display-adjusted" />
 
-        <!-- 右下角的地图控制组件 -->
         <MapControls @zoom-in="zoomIn" @zoom-out="zoomOut" @reset-view="resetView" :layers="selectedLayers"
           @update:layers="selectedLayers = $event" />
 
-        <!-- 动态组件容器 -->
         <DynamicPanelContainer />
 
         <!-- 左侧树形结构悬浮面板 -->
@@ -106,34 +97,172 @@ import DeviceDetailPanel from '@/components/device/DeviceDetailPanel.vue'
 // OpenLayers 弹窗相关导入
 import Overlay from 'ol/Overlay'
 
-// 新增设备详情相关数据
-const showDeviceDetail = ref(false)
-const currentDevice = ref<any>(null)
-const currentDeviceCoordinates = ref<number[]>([])
-const popupElement = ref<HTMLElement>()
-let popup: Overlay | null = null
+// 设备弹窗管理 - 使用普通对象而不是 Map
+interface PopupInfo {
+  overlay: Overlay
+  element: HTMLElement
+  app: any // Vue 应用实例
+}
 
-const chartData = ref({
-  accumulated: '0',
-  flowRate: '0.00',
-  temperature: '0',
-  pressure: '0.00',
-  temperatureData: [20, 25, 30, 35, 40, 45],
-  pressureData: [60, 65, 70, 75, 80, 85]
-})
+const devicePopups = ref<Record<string, PopupInfo>>({})
 
-// 初始化弹窗
-const initPopup = () => {
-  if (!popupElement.value) return
+// 检查设备弹窗是否存在
+const hasDevicePopup = (deviceId: string): boolean => {
+  return !!devicePopups.value[deviceId]
+}
 
-  popup = new Overlay({
-    element: popupElement.value,
-    positioning: 'bottom-center',
-    stopEvent: true, // 阻止事件传播到地图
-    offset: [0, -10],
+// 获取设备弹窗
+const getDevicePopup = (deviceId: string): PopupInfo | undefined => {
+  return devicePopups.value[deviceId]
+}
+
+// 设置设备弹窗
+const setDevicePopup = (deviceId: string, popupInfo: PopupInfo) => {
+  devicePopups.value[deviceId] = popupInfo
+}
+
+// 删除设备弹窗
+const deleteDevicePopup = (deviceId: string) => {
+  delete devicePopups.value[deviceId]
+}
+
+// 获取所有设备弹窗ID
+const getDevicePopupIds = (): string[] => {
+  return Object.keys(devicePopups.value)
+}
+
+// 创建设备弹窗
+// 创建设备弹窗
+const createDevicePopup = async (deviceId: string, deviceData: any, chartData: any, coordinates: number[]) => {
+  // 如果弹窗已存在，先移除
+  if (hasDevicePopup(deviceId)) {
+    removeDevicePopup(deviceId)
+  }
+
+  try {
+    // 创建弹窗容器 - 移除箭头相关的样式
+    const popupElement = document.createElement('div')
+    popupElement.className = 'ol-popup'
+    popupElement.style.cssText = `
+      position: absolute;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+      border: 1px solid ${gasBlueTheme.primary};
+      width: 350px;
+      max-width: 400px;
+      min-width: 300px;
+      z-index: 1002;
+      transform: translate(-50%, -100%);
+      cursor: default;
+      font-size: 12px;
+    `
+
+    // 创建弹窗内容容器
+    const popupContent = document.createElement('div')
+    popupContent.className = 'popup-content'
+    popupContent.style.cssText = `
+      max-height: 400px;
+      overflow: hidden;
+    `
+
+    // 组装弹窗 - 移除箭头元素
+    popupElement.appendChild(popupContent)
+
+    // 创建 Overlay - 调整偏移量
+    const overlay = new Overlay({
+      element: popupElement,
+      positioning: 'bottom-center',
+      stopEvent: true,
+      offset: [0, -8], // 减小偏移量
+    })
+
+    // 设置位置
+    const pixelCoordinates = fromLonLat(coordinates)
+    overlay.setPosition(pixelCoordinates)
+
+    // 添加到地图
+    if (map) {
+      map.addOverlay(overlay)
+    }
+
+    // 使用 Vue 渲染组件内容
+    const { createApp } = await import('vue')
+
+    // 创建 Vue 应用
+    const app = createApp(DeviceDetailPanel, {
+      deviceData,
+      chartData,
+      themeColors: gasBlueTheme,
+      onClose: () => removeDevicePopup(deviceId)
+    })
+
+    // 挂载到弹窗内容容器
+    app.mount(popupContent)
+
+    // 存储弹窗引用
+    const popupInfo: PopupInfo = {
+      overlay,
+      element: popupElement,
+      app
+    }
+
+    setDevicePopup(deviceId, popupInfo)
+
+    console.log(`设备弹窗 ${deviceId} 创建成功`)
+    return overlay
+
+  } catch (error) {
+    console.error('创建设备弹窗失败:', error)
+    return null
+  }
+}
+
+// 移除设备弹窗
+const removeDevicePopup = (deviceId: string) => {
+  const popupInfo = getDevicePopup(deviceId)
+  if (popupInfo) {
+    try {
+      // 销毁 Vue 应用
+      if (popupInfo.app) {
+        popupInfo.app.unmount()
+      }
+
+      // 从地图移除 Overlay
+      if (map && popupInfo.overlay) {
+        map.removeOverlay(popupInfo.overlay)
+      }
+
+      // 手动移除 DOM 元素
+      if (popupInfo.element && popupInfo.element.parentNode) {
+        popupInfo.element.parentNode.removeChild(popupInfo.element)
+      }
+
+      // 从管理器中移除
+      deleteDevicePopup(deviceId)
+
+      console.log(`设备弹窗 ${deviceId} 已完全移除`)
+    } catch (error) {
+      console.error(`移除设备弹窗 ${deviceId} 失败:`, error)
+    }
+  }
+}
+
+// 移除所有设备弹窗
+const removeAllDevicePopups = () => {
+  const deviceIds = getDevicePopupIds()
+  deviceIds.forEach(deviceId => {
+    removeDevicePopup(deviceId)
   })
+}
 
-  map?.addOverlay(popup)
+// 更新弹窗位置
+const updatePopupPosition = (deviceId: string, coordinates: number[]) => {
+  const popupInfo = getDevicePopup(deviceId)
+  if (popupInfo && map) {
+    const pixelCoordinates = fromLonLat(coordinates)
+    popupInfo.overlay.setPosition(pixelCoordinates)
+  }
 }
 
 // 处理树节点点击
@@ -143,24 +272,29 @@ const handleTreeNodeClick = async (nodeData: any) => {
   // 如果节点有坐标数据，聚焦到该位置并显示弹窗
   if (nodeData.data?.coordinates && map) {
     const coordinates = nodeData.data.coordinates
-    currentDeviceCoordinates.value = coordinates
+    const deviceId = nodeData.id
+
+    console.log('设备坐标:', coordinates, '设备ID:', deviceId)
 
     // 聚焦到该位置
     focusOnCoordinates(coordinates)
 
     // 显示设备详情弹窗（如果是设备节点）
     if (nodeData.type && ['station', 'valve', 'monitor'].includes(nodeData.type)) {
-      await showDeviceDetailForNode(nodeData, coordinates)
+      await showDeviceDetailForNode(nodeData, coordinates, deviceId)
     }
+  } else {
+    console.warn('节点没有坐标数据或地图未初始化')
   }
 }
 
 // 显示设备详情
-const showDeviceDetailForNode = async (nodeData: any, coordinates: number[]) => {
-  console.log('显示设备详情:', nodeData)
-  // 模拟设备数据
-  currentDevice.value = {
-    id: nodeData.id,
+const showDeviceDetailForNode = async (nodeData: any, coordinates: number[], deviceId: string) => {
+  console.log('显示设备详情:', nodeData.label, '设备ID:', deviceId)
+
+  // 创建设备数据
+  const deviceData = {
+    id: deviceId,
     name: nodeData.label,
     type: getDeviceTypeName(nodeData.type),
     status: '正常',
@@ -168,27 +302,18 @@ const showDeviceDetailForNode = async (nodeData: any, coordinates: number[]) => 
     updateTime: new Date().toLocaleString('zh-CN')
   }
 
-  // 模拟实时数据更新
-  updateRealtimeData()
-
-  // 确保DOM更新完成
-  await nextTick()
-
-  // 显示弹窗
-  showDeviceDetail.value = true
-  if (popup && map) {
-    const pixelCoordinates = fromLonLat(coordinates)
-    popup.setPosition(pixelCoordinates)
+  // 创建图表数据
+  const chartData = {
+    accumulated: Math.floor(Math.random() * 1000).toString(),
+    flowRate: (Math.random() * 100).toFixed(2),
+    temperature: Math.floor(Math.random() * 50).toString(),
+    pressure: (Math.random() * 100).toFixed(2),
+    temperatureData: Array(6).fill(0).map(() => Math.floor(Math.random() * 50)),
+    pressureData: Array(6).fill(0).map(() => Math.floor(Math.random() * 50) + 50)
   }
-}
 
-// 关闭设备详情
-const closeDeviceDetail = () => {
-  showDeviceDetail.value = false
-  if (popup) {
-    popup.setPosition(undefined)
-  }
-  currentDevice.value = null
+  // 创建设备弹窗
+  await createDevicePopup(deviceId, deviceData, chartData, coordinates)
 }
 
 // 获取设备类型名称
@@ -200,19 +325,6 @@ const getDeviceTypeName = (type: string) => {
     'pipeline': '管线'
   }
   return typeMap[type] || '设备'
-}
-
-// 更新实时数据（模拟）
-const updateRealtimeData = () => {
-  // 模拟实时数据变化
-  chartData.value = {
-    accumulated: Math.floor(Math.random() * 1000).toString(),
-    flowRate: (Math.random() * 100).toFixed(2),
-    temperature: Math.floor(Math.random() * 50).toString(),
-    pressure: (Math.random() * 100).toFixed(2),
-    temperatureData: Array(6).fill(0).map(() => Math.floor(Math.random() * 50)),
-    pressureData: Array(6).fill(0).map(() => Math.floor(Math.random() * 50) + 50)
-  }
 }
 
 // 聚焦到坐标位置
@@ -598,7 +710,11 @@ const initMap = () => {
   // 监听地图视图变化，更新坐标信息
   map.getView().on('change', updateMapInfo)
 
-  initPopup()
+  // 监听地图移动，更新所有弹窗位置
+  map.on('moveend', () => {
+    // 当地图移动结束时，可以在这里更新弹窗位置
+    console.log('地图移动结束，当前弹窗数量:', getDevicePopupIds().length)
+  })
 
   // 确保地图正确渲染
   setTimeout(() => {
@@ -720,6 +836,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  removeAllDevicePopups()
   if (map) {
     map.setTarget(undefined)
   }
