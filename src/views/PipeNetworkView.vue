@@ -73,7 +73,7 @@
               <el-icon>
                 <Grid />
               </el-icon>
-              <span>数据列表</span>
+              <span>{{ bottomTableTitle }}</span>
             </div>
             <div class="panel-actions">
               <el-tooltip content="刷新数据">
@@ -86,8 +86,34 @@
             </div>
           </div>
           <div class="panel-content">
-            <DataTable :data="tableData" :loading="tableLoading" @row-click="handleTableRowClick"
-              v-if="showBottomPanel" />
+            <!-- 动态表格组件 -->
+            <DataTable :data="tableData" :loading="tableLoading" :columns="tableColumns" :show-actions="true"
+              :show-pagination="true" :show-edit="false" :show-delete="false" @row-click="handleTableRowClick"
+              @view="handleTableView" @refresh="refreshTableData" @export="exportTableData" @search="handleTableSearch">
+              <!-- 自定义状态列 -->
+              <template #status="{ row }">
+                <el-tag :type="row.status === '正常' ? 'success' : 'danger'" size="small">
+                  {{ row.status }}
+                </el-tag>
+              </template>
+
+              <!-- 自定义类型列 -->
+              <template #type="{ row }">
+                <el-tag :type="getTagType(row.type)" size="small">
+                  {{ row.type }}
+                </el-tag>
+              </template>
+
+              <!-- 自定义操作列 -->
+              <template #actions="{ row }">
+                <el-button link type="primary" @click.stop="handleTableView(row)">
+                  查看
+                </el-button>
+                <el-button link type="warning" @click.stop="handleTableEdit(row)">
+                  编辑
+                </el-button>
+              </template>
+            </DataTable>
           </div>
           <div class="panel-resize-handle vertical" @mousedown="startResize('bottom')"></div>
         </div>
@@ -141,6 +167,48 @@ import type { Nullable } from 'element-plus/lib/components/cascader-panel/src/no
 
 // 导入图例组件
 import LegendPanel from '@/components/map/LegendComponent.vue'
+
+const bottomTableTitle = ref('数据列表')
+// 在脚本部分定义表格列配置
+const tableColumns = ref([
+  { prop: 'id', label: 'ID', width: 80 },
+  { prop: 'name', label: '名称', minWidth: 120 },
+  {
+    prop: 'type',
+    label: '类型',
+    width: 100,
+    slot: 'type' // 使用自定义插槽
+  },
+  {
+    prop: 'status',
+    label: '状态',
+    width: 80,
+    slot: 'status' // 使用自定义插槽
+  },
+  { prop: 'location', label: '位置', minWidth: 150 },
+  { prop: 'updateTime', label: '更新时间', width: 160 },
+])
+
+// 不同的数据场景可以使用不同的列配置
+const gasSourceColumns = ref([
+  { prop: 'id', label: '设备ID', width: 100 },
+  { prop: 'name', label: '设备名称', minWidth: 120 },
+  { prop: 'pressure', label: '当前压力(MPa)', width: 120 },
+  { prop: 'temperature', label: '温度(°C)', width: 100 },
+  { prop: 'flowRate', label: '瞬时流量(m³/h)', width: 120 },
+  { prop: 'status', label: '运行状态', width: 100, slot: 'status' },
+  { prop: 'updateTime', label: '数据时间', width: 160 }
+])
+
+const warningColumns = ref([
+  { prop: 'id', label: '告警ID', width: 100 },
+  { prop: 'deviceName', label: '设备名称', minWidth: 120 },
+  { prop: 'warningType', label: '告警类型', width: 100 },
+  { prop: 'level', label: '告警级别', width: 100, slot: 'level' },
+  { prop: 'description', label: '告警描述', minWidth: 200 },
+  { prop: 'startTime', label: '开始时间', width: 160 },
+  { prop: 'status', label: '处理状态', width: 100, slot: 'status' }
+])
 
 // 在现有的响应式数据中添加图例面板控制
 const showLegendPanel = ref(false)
@@ -828,10 +896,13 @@ const handleMenuClick = (menuKey: string) => {
       showGasStatusPanel.value = !showGasStatusPanel.value
       break
     case '/pipe-network/distribution':
+      bottomTableTitle.value = '管网列表'
       showPipeTypePanel.value = !showPipeTypePanel.value
       showBottomPanel.value = !showBottomPanel.value
+      // tableColumns.value = gasSourceColumns.value
       break
     case '/pipe-network/equipment':
+      bottomTableTitle.value = '设备设施列表'
       // 点击full-analysis时显示左侧面板和底部面板
       showLegendPanel.value = true
       showBottomPanel.value = true
@@ -1347,6 +1418,34 @@ const createLegendStyle = (featureType: string, isSelected: boolean) => {
       stroke: new Stroke({ color: '#fff', width: 2 })
     })
   })
+}
+
+// 表格搜索处理
+const handleTableSearch = (keyword: string) => {
+  console.log('表格搜索:', keyword)
+  // 实现搜索逻辑
+}
+
+// 表格查看详情
+const handleTableView = (row: any) => {
+  console.log('查看详情:', row)
+  // 实现查看详情逻辑
+}
+
+// 表格编辑
+const handleTableEdit = (row: any) => {
+  console.log('编辑数据:', row)
+  // 实现编辑逻辑
+}
+const getTagType = (type: string) => {
+  const typeMap: Record<string, string> = {
+    '管线': '',
+    '设备': 'success',
+    '阀门': 'warning',
+    '监测点': 'info',
+    '警告': 'danger'
+  }
+  return typeMap[type] || ''
 }
 </script>
 
