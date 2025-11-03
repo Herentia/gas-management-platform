@@ -60,6 +60,8 @@
           </div>
           <div class="panel-content">
             <TreeStructure :data="treeData" @node-click="handleTreeNodeClick" v-if="showLeftPanel" />
+            <!-- 图例组件 - 只在full-analysis时显示 -->
+            <!-- <LegendComponent v-if="activeMenu === '/pipe-network/equipment'" /> -->
           </div>
           <div class="panel-resize-handle" @mousedown="startResize('left')"></div>
         </div>
@@ -89,6 +91,10 @@
           </div>
           <div class="panel-resize-handle vertical" @mousedown="startResize('bottom')"></div>
         </div>
+
+        <!-- 图例面板 -->
+        <LegendPanel :visible="showLegendPanel" :theme-colors="gasBlueTheme" @close="showLegendPanel = false"
+          @selection-change="handleLegendSelectionChange" />
       </div>
     </div>
   </div>
@@ -133,6 +139,11 @@ import PipeTypePanel from '@/components/map/PipeTypePanel.vue'
 import OfficialInfoPopup from '@/components/map/OfficialInfoPopup.vue'
 import type { Nullable } from 'element-plus/lib/components/cascader-panel/src/node.js'
 
+// 导入图例组件
+import LegendPanel from '@/components/map/LegendComponent.vue'
+
+// 在现有的响应式数据中添加图例面板控制
+const showLegendPanel = ref(false)
 // 管网类型面板
 // 新增响应式数据
 const showPipeTypePanel = ref(false)
@@ -820,8 +831,9 @@ const handleMenuClick = (menuKey: string) => {
       showPipeTypePanel.value = !showPipeTypePanel.value
       showBottomPanel.value = !showBottomPanel.value
       break
-    case 'full-analysis':
-      showLeftPanel.value = true
+    case '/pipe-network/equipment':
+      // 点击full-analysis时显示左侧面板和底部面板
+      showLegendPanel.value = true
       showBottomPanel.value = true
       break
     default:
@@ -1255,6 +1267,87 @@ const handleResize = () => {
     }, 150)
   }
 }
+
+// 图例
+// 处理图例选择变化
+const handleLegendSelectionChange = (selectedItems: any[]) => {
+  console.log('图例选择变化:', selectedItems)
+  // 这里可以根据选择的设备类型更新地图显示
+  updateMapWithLegendSelection(selectedItems)
+}
+
+// 根据图例选择更新地图显示
+const updateMapWithLegendSelection = (selectedItems: any[]) => {
+  if (!map || !vectorLayer) return
+
+  console.log('根据图例选择更新地图显示', selectedItems)
+
+  // 获取选中的设备类型
+  const selectedTypes = selectedItems.map(item => item.name)
+
+  // 这里可以根据选中的设备类型来过滤或高亮地图上的要素
+  // 示例：更新图层样式
+  const source = vectorLayer.getSource()
+  if (source) {
+    vectorLayer.setStyle((feature) => {
+      const featureType = feature.get('type')
+      const isSelected = selectedTypes.some(type =>
+        getFeatureTypeMapping(type) === featureType
+      )
+
+      // 根据选择状态返回不同的样式
+      return createLegendStyle(featureType, isSelected)
+    })
+  }
+}
+
+// 设备类型映射（根据实际数据结构调整）
+const getFeatureTypeMapping = (legendType: string): string => {
+  const mapping: Record<string, string> = {
+    '调压箱': 'station',
+    '调压柜': 'cabinet',
+    '撬装柜': 'skid',
+    '阀门': 'valve',
+    '流量计': 'flowmeter',
+    '压力计': 'pressure',
+    '场站': 'field'
+  }
+  return mapping[legendType] || legendType
+}
+
+// 创建图例相关的样式
+const createLegendStyle = (featureType: string, isSelected: boolean) => {
+  const baseStyle = {
+    station: { color: '#1E6FBA', radius: 8 },
+    cabinet: { color: '#FF6B6B', radius: 6 },
+    skid: { color: '#4ECDC4', radius: 6 },
+    valve: { color: '#45B7D1', radius: 5 },
+    flowmeter: { color: '#FFA07A', radius: 5 },
+    pressure: { color: '#98D8C8', radius: 5 },
+    field: { color: '#9B59B6', radius: 10 }
+  }
+
+  const styleConfig = baseStyle[featureType] || { color: '#165DFF', radius: 6 }
+
+  if (!isSelected) {
+    // 未选中的设备显示为灰色
+    return new Style({
+      image: new Circle({
+        radius: styleConfig.radius,
+        fill: new Fill({ color: '#CCCCCC' }),
+        stroke: new Stroke({ color: '#999999', width: 1 })
+      })
+    })
+  }
+
+  return new Style({
+    image: new Circle({
+      radius: styleConfig.radius,
+      fill: new Fill({ color: styleConfig.color }),
+      stroke: new Stroke({ color: '#fff', width: 2 })
+    })
+  })
+}
 </script>
 
 <style scoped>
@@ -1666,6 +1759,24 @@ const handleResize = () => {
 /* 如果有多个面板，确保它们不会重叠 */
 @media (min-width: 1200px) {
   .left-tree-panel {
+    left: 20px;
+  }
+}
+
+/* 在现有样式中添加图例容器的样式 */
+/* 在现有样式中确保图例面板的z-index正确 */
+.legend-panel {
+  z-index: 1000;
+}
+
+/* 如果有多个左侧面板，确保它们不会重叠 */
+@media (min-width: 1200px) {
+  .left-tree-panel {
+    left: 340px;
+    /* 图例面板宽度 + 间距 */
+  }
+
+  .legend-panel {
     left: 20px;
   }
 }
