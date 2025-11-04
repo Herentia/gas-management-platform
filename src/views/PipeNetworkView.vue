@@ -167,6 +167,10 @@ import type { Nullable } from 'element-plus/lib/components/cascader-panel/src/no
 
 // 导入图例组件
 import LegendPanel from '@/components/map/LegendComponent.vue'
+import { ta } from 'element-plus/es/locales.mjs'
+
+// 导入动态弹窗组件
+import DynamicPopup from '@/components/map/DynamicPopup.vue'
 
 const bottomTableTitle = ref('数据列表')
 // 在脚本部分定义表格列配置
@@ -190,14 +194,12 @@ const tableColumns = ref([
 ])
 
 // 不同的数据场景可以使用不同的列配置
-const gasSourceColumns = ref([
+const deviceColumns = ref([
   { prop: 'id', label: '设备ID', width: 100 },
-  { prop: 'name', label: '设备名称', minWidth: 120 },
-  { prop: 'pressure', label: '当前压力(MPa)', width: 120 },
-  { prop: 'temperature', label: '温度(°C)', width: 100 },
-  { prop: 'flowRate', label: '瞬时流量(m³/h)', width: 120 },
-  { prop: 'status', label: '运行状态', width: 100, slot: 'status' },
-  { prop: 'updateTime', label: '数据时间', width: 160 }
+  { prop: 'deviceName', label: '设备名称', minWidth: 120 },
+  { prop: 'deviceType', label: '设备类型', width: 120 },
+  { prop: 'deviceNo', label: '设备编号', width: 100 },
+  { prop: 'deviceAddress', label: '设备地址', width: 120 },
 ])
 
 const warningColumns = ref([
@@ -790,8 +792,89 @@ const treeData = ref([
   }
 ])
 
-// 表格数据
-const tableData = ref([
+const tableData = ref<any>([])
+// 表格数据   设备设施
+const deviceTableData = ref([
+  {
+    id: 'D001',
+    deviceName: '调压站-A01',
+    deviceType: '调压站',
+    deviceNo: 'TRZ-A01',
+    deviceAddress: '北京市朝阳区建国路88号',
+    data: {
+      coordinates: [116.4074, 39.9193],
+      officialInfo: {
+        name: '调压站-A01',
+        material: '无缝钢管',
+        years: '6年-10年',
+        pressureLevel: '中压管道',
+        anticorrosion: '普通PE防腐',
+        diameter: '钢质DN57',
+        other: '-'
+      }
+    }
+  },
+  {
+    id: 'D002',
+    deviceName: '阀门-V001',
+    deviceType: '阀门',
+    deviceNo: 'FM-V001',
+    deviceAddress: '北京市海淀区中关村大街27号',
+    data: {
+      coordinates: [116.4024, 39.9143],
+      officialInfo: {
+        name: '阀门-V001',
+        material: '镀锌钢管',
+        years: '11年-15年',
+        pressureLevel: '高压管道',
+        anticorrosion: '沥青防腐',
+        diameter: '钢质DN32',
+        other: '占压管线'
+      }
+    }
+  },
+  {
+    id: 'D003',
+    deviceName: '压力监测点-P001',
+    deviceType: '监测点',
+    deviceNo: 'YQ-P001',
+    deviceAddress: '北京市东城区东直门南大街5号',
+    data: {
+      coordinates: [116.4174, 39.9093],
+      officialInfo: {
+        name: '压力监测点-P001',
+        material: 'PE管道',
+        years: '1年-5年',
+        pressureLevel: '低压管道',
+        anticorrosion: '抗UV漆',
+        diameter: 'PE De32',
+        other: '-'
+      }
+    }
+  },
+  {
+    id: 'D004',
+    deviceName: '调压站-A02',
+    deviceType: '调压站',
+    deviceNo: 'TRZ-A02',
+    deviceAddress: '北京市丰台区南四环西路66号',
+    data: {
+      coordinates: [116.3924, 39.8993],
+      officialInfo: {
+        name: '调压站-A02',
+        material: '无缝钢管',
+        years: '6年-10年',
+        pressureLevel: '中压管道',
+        anticorrosion: '普通PE防腐',
+        diameter: '钢质DN57',
+        other: '-'
+      }
+    }
+  }
+])
+
+// 表格数据   官网分布
+const gasData = ref([
   {
     id: '1',
     name: '北线主干管-001',
@@ -900,12 +983,15 @@ const handleMenuClick = (menuKey: string) => {
       showPipeTypePanel.value = !showPipeTypePanel.value
       showBottomPanel.value = !showBottomPanel.value
       // tableColumns.value = gasSourceColumns.value
+      tableData.value = gasData.value
       break
     case '/pipe-network/equipment':
       bottomTableTitle.value = '设备设施列表'
       // 点击full-analysis时显示左侧面板和底部面板
       showLegendPanel.value = true
       showBottomPanel.value = true
+      tableColumns.value = deviceColumns.value
+      tableData.value = deviceTableData.value
       break
     default:
       // 其他菜单处理
@@ -928,48 +1014,94 @@ const handleMenuClick = (menuKey: string) => {
 //   }
 // }
 
-// 处理表格行点击
-const handleTableRowClick = async (rowData: any) => {
-  console.log('表格行点击:', rowData)
+// 定义不同数据类型的弹窗配置
+const popupConfigs = {
+  // 管网信息弹窗配置
+  pipeline: {
+    title: '管网信息',
+    titleIcon: 'Connection',
+    displayType: 'table',
+    minWidth: '350px',
+    maxWidth: '500px',
+    labelWidth: '100px',
+    fields: [
+      { key: 'name', label: '管网名称', path: 'data.officialInfo.name', highlight: true },
+      { key: 'material', label: '管网材质', path: 'data.officialInfo.material' },
+      { key: 'years', label: '使用年限', path: 'data.officialInfo.years' },
+      { key: 'pressureLevel', label: '压力等级', path: 'data.officialInfo.pressureLevel' },
+      { key: 'anticorrosion', label: '防腐材料', path: 'data.officialInfo.anticorrosion' },
+      { key: 'diameter', label: '管径', path: 'data.officialInfo.diameter' },
+      { key: 'other', label: '其他', path: 'data.officialInfo.other' }
+    ],
+    actions: [
+      { key: 'viewDetail', label: '查看详情', type: 'primary', icon: 'View' },
+      { key: 'edit', label: '编辑信息', type: 'warning', icon: 'Edit' }
+    ]
+  },
 
-  // 如果行数据有坐标，聚焦到该位置
-  if (rowData.data?.coordinates && map) {
-    // 先移除所有现有的弹窗
-    removeAllDevicePopups()
+  // 设备信息弹窗配置
+  device: {
+    title: '设备信息',
+    titleIcon: 'Monitor',
+    displayType: 'cards',
+    minWidth: '400px',
+    fields: [
+      { key: 'name', label: '设备名称', highlight: true },
+      { key: 'type', label: '设备类型' },
+      { key: 'status', label: '运行状态', slot: 'status' },
+      { key: 'pressure', label: '当前压力', unit: 'MPa' },
+      { key: 'temperature', label: '温度', unit: '°C' },
+      { key: 'flowRate', label: '流量', unit: 'm³/h' },
+      { key: 'location', label: '位置' },
+      { key: 'updateTime', label: '更新时间' }
+    ],
+    actions: [
+      { key: 'monitor', label: '实时监控', type: 'primary' },
+      { key: 'history', label: '历史数据', type: 'info' }
+    ]
+  },
 
-    // 聚焦到坐标位置
-    focusOnCoordinates(rowData.data.coordinates)
-
-    // 显示官网信息弹窗
-    if (rowData.data.officialInfo) {
-      // 给地图动画一点时间完成
-      setTimeout(() => {
-        showOfficialInfoPopup(rowData.data.officialInfo, rowData.data.coordinates)
-      }, 500)
-    }
+  // 告警信息弹窗配置
+  warning: {
+    title: '告警信息',
+    titleIcon: 'Warning',
+    subtitle: '需要及时处理',
+    displayType: 'table',
+    minWidth: '380px',
+    fields: [
+      { key: 'deviceName', label: '设备名称', highlight: true },
+      { key: 'warningType', label: '告警类型' },
+      { key: 'level', label: '告警级别', slot: 'warningLevel' },
+      { key: 'description', label: '告警描述' },
+      { key: 'startTime', label: '开始时间' },
+      { key: 'duration', label: '持续时间' },
+      { key: 'suggestion', label: '处理建议' }
+    ],
+    actions: [
+      { key: 'confirm', label: '确认告警', type: 'warning' },
+      { key: 'handle', label: '立即处理', type: 'danger' },
+      { key: 'ignore', label: '忽略', type: 'info' }
+    ]
   }
 }
 
-// 显示官网信息弹窗
-const showOfficialInfoPopup = async (officialInfo: any, coordinates: any) => {
-  const popupId = `official_info_${Date.now()}`
+// 在显示弹窗时根据数据类型选择配置
+const showOfficialInfoPopup = async (officialInfo: any, coordinates: any, dataType: string = 'pipeline') => {
+  const popupId = `dynamic_popup_${Date.now()}`
 
   try {
-    console.log('开始创建管网信息弹窗，坐标:', coordinates)
+    // 根据数据类型获取配置
+    const config = popupConfigs[dataType] || popupConfigs.pipeline
 
     // 创建弹窗容器
     const popupElement = document.createElement('div')
-    popupElement.className = 'ol-popup official-info-popup-container'
+    popupElement.className = 'ol-popup dynamic-popup-container'
     popupElement.style.cssText = `
       position: absolute;
       background: white;
       border-radius: 8px;
       box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
       border: 1px solid ${gasBlueTheme.primary};
-      width: 320px;
-      max-width: 450px;
-      min-width: 280px;
-      height: 300px;
       z-index: 1003;
       transform: translate(-50%, -100%);
       cursor: default;
@@ -996,43 +1128,36 @@ const showOfficialInfoPopup = async (officialInfo: any, coordinates: any) => {
       offset: [0, -10],
     })
 
-    // 设置位置 - 修复坐标处理
+    // 设置位置
     let pixelCoordinates
     if (Array.isArray(coordinates) && Array.isArray(coordinates[0])) {
-      // 如果是线状要素（管线），取第一个点作为弹窗位置
-      console.log('线状要素，使用第一个点坐标:', coordinates[0])
       pixelCoordinates = fromLonLat(coordinates[0])
     } else {
-      // 如果是点状要素
-      console.log('点状要素，使用坐标:', coordinates)
       pixelCoordinates = fromLonLat(coordinates)
     }
 
-    console.log('弹窗位置像素坐标:', pixelCoordinates)
     overlay.setPosition(pixelCoordinates)
 
     // 添加到地图
     if (map) {
       map.addOverlay(overlay)
-      console.log('弹窗已添加到地图')
     }
 
     // 使用 Vue 渲染组件内容
     const { createApp } = await import('vue')
 
-    console.log('创建官网信息弹窗 Vue 应用', officialInfo)
-
     // 创建 Vue 应用
-    const app = createApp(OfficialInfoPopup, {
-      infoData: officialInfo,
+    const app = createApp(DynamicPopup, {
+      rowData: officialInfo,
+      config: config,
       themeColors: gasBlueTheme,
       onClose: () => {
-        console.log('关闭管网信息弹窗')
         removeDevicePopup(popupId)
       },
-      onViewDetail: (data) => {
-        console.log('查看详情:', data)
-        // 这里可以跳转到详情页面或显示更详细的信息
+      onAction: (action, rowData) => {
+        console.log('执行操作:', action.key, rowData)
+        // 处理不同的操作
+        handlePopupAction(action.key, rowData)
       }
     })
 
@@ -1048,17 +1173,166 @@ const showOfficialInfoPopup = async (officialInfo: any, coordinates: any) => {
 
     setDevicePopup(popupId, popupInfo)
 
-    console.log(`管网信息弹窗 ${popupId} 创建成功`, popupElement)
-
-    // 确保地图更新
-    setTimeout(() => {
-      map?.updateSize()
-    }, 100)
-
   } catch (error) {
-    console.error('创建官网信息弹窗失败:', error)
+    console.error('创建动态弹窗失败:', error)
   }
 }
+
+// 处理弹窗操作
+const handlePopupAction = (actionKey: string, rowData: any) => {
+  switch (actionKey) {
+    case 'viewDetail':
+      // 查看详情逻辑
+      console.log('查看详情:', rowData)
+      break
+    case 'edit':
+      // 编辑逻辑
+      console.log('编辑信息:', rowData)
+      break
+    case 'monitor':
+      // 实时监控逻辑
+      console.log('实时监控:', rowData)
+      break
+    case 'confirm':
+      // 确认告警逻辑
+      console.log('确认告警:', rowData)
+      break
+    // 其他操作...
+  }
+}
+
+// 处理表格行点击
+const handleTableRowClick = async (rowData: any) => {
+  console.log('表格行点击:', rowData)
+
+  // 如果行数据有坐标，聚焦到该位置
+  if (rowData.data?.coordinates && map) {
+    // 先移除所有现有的弹窗
+    removeAllDevicePopups()
+
+    // 聚焦到坐标位置
+    focusOnCoordinates(rowData.data.coordinates)
+
+    console.log('点击行数据', rowData.data.officialInfo)
+    // 显示官网信息弹窗
+    if (rowData.data.officialInfo) {
+      // 给地图动画一点时间完成
+      setTimeout(() => {
+        showOfficialInfoPopup(rowData.data.officialInfo, rowData.data.coordinates)
+      }, 500)
+    }
+  }
+}
+
+// // 显示管网信息弹窗
+// const showOfficialInfoPopup = async (officialInfo: any, coordinates: any) => {
+//   const popupId = `official_info_${Date.now()}`
+
+//   try {
+//     console.log('开始创建管网信息弹窗，坐标:', coordinates)
+
+//     // 创建弹窗容器
+//     const popupElement = document.createElement('div')
+//     popupElement.className = 'ol-popup official-info-popup-container'
+//     popupElement.style.cssText = `
+//       position: absolute;
+//       background: white;
+//       border-radius: 8px;
+//       box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+//       border: 1px solid ${gasBlueTheme.primary};
+//       width: 320px;
+//       max-width: 450px;
+//       min-width: 280px;
+//       height: 300px;
+//       z-index: 1003;
+//       transform: translate(-50%, -100%);
+//       cursor: default;
+//       font-size: 12px;
+//       overflow: hidden;
+//     `
+
+//     // 创建弹窗内容容器
+//     const popupContent = document.createElement('div')
+//     popupContent.className = 'popup-content'
+//     popupContent.style.cssText = `
+//       max-height: 500px;
+//       overflow: hidden;
+//     `
+
+//     // 组装弹窗
+//     popupElement.appendChild(popupContent)
+
+//     // 创建 Overlay
+//     const overlay = new Overlay({
+//       element: popupElement,
+//       positioning: 'bottom-center',
+//       stopEvent: true,
+//       offset: [0, -10],
+//     })
+
+//     // 设置位置 - 修复坐标处理
+//     let pixelCoordinates
+//     if (Array.isArray(coordinates) && Array.isArray(coordinates[0])) {
+//       // 如果是线状要素（管线），取第一个点作为弹窗位置
+//       console.log('线状要素，使用第一个点坐标:', coordinates[0])
+//       pixelCoordinates = fromLonLat(coordinates[0])
+//     } else {
+//       // 如果是点状要素
+//       console.log('点状要素，使用坐标:', coordinates)
+//       pixelCoordinates = fromLonLat(coordinates)
+//     }
+
+//     console.log('弹窗位置像素坐标:', pixelCoordinates)
+//     overlay.setPosition(pixelCoordinates)
+
+//     // 添加到地图
+//     if (map) {
+//       map.addOverlay(overlay)
+//       console.log('弹窗已添加到地图')
+//     }
+
+//     // 使用 Vue 渲染组件内容
+//     const { createApp } = await import('vue')
+
+//     console.log('创建官网信息弹窗 Vue 应用', officialInfo)
+
+//     // 创建 Vue 应用
+//     const app = createApp(OfficialInfoPopup, {
+//       infoData: officialInfo,
+//       themeColors: gasBlueTheme,
+//       onClose: () => {
+//         console.log('关闭管网信息弹窗')
+//         removeDevicePopup(popupId)
+//       },
+//       onViewDetail: (data) => {
+//         console.log('查看详情:', data)
+//         // 这里可以跳转到详情页面或显示更详细的信息
+//       }
+//     })
+
+//     // 挂载到弹窗内容容器
+//     app.mount(popupContent)
+
+//     // 存储弹窗引用
+//     const popupInfo: PopupInfo = {
+//       overlay,
+//       element: popupElement,
+//       app
+//     }
+
+//     setDevicePopup(popupId, popupInfo)
+
+//     console.log(`管网信息弹窗 ${popupId} 创建成功`, popupElement)
+
+//     // 确保地图更新
+//     setTimeout(() => {
+//       map?.updateSize()
+//     }, 100)
+
+//   } catch (error) {
+//     console.error('创建官网信息弹窗失败:', error)
+//   }
+// }
 
 // 刷新表格数据
 const refreshTableData = () => {
