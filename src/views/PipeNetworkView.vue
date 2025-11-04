@@ -1032,6 +1032,7 @@ const handleInspectionMenu = (menuKey: string) => {
   switch (menuKey) {
     case '/inspection/tasks':
       // 显示巡检任务面板
+      bottomTableTitle.value = '市政管网列表'
       break
     case '/inspection/routes':
       // 显示巡检路线面板

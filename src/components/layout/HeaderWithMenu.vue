@@ -180,96 +180,102 @@ const userInfo = ref<UserInfo>({
 const allMenuItems = {
   // 管网管理菜单
   'pipe-network': [
+    // {
+    //   id: 1,
+    //   title: '监测分析',
+    //   path: '/pipe-network/monitor',
+    //   icon: markRaw(TrendCharts),
+    //   children: [
+    //     {
+    //       id: 11,
+    //       title: '气源流量压力监测',
+    //       path: '/pipe-network/gas-source',
+    //       icon: markRaw(Monitor)
+    //     },
+    //     {
+    //       id: 12,
+    //       title: '末端流量压力监测',
+    //       path: '/pipe-network/end-point',
+    //       icon: markRaw(Monitor)
+    //     }
+    //   ]
+    // },
     {
       id: 1,
-      title: '监测分析',
-      path: '/pipe-network/monitor',
-      icon: markRaw(TrendCharts),
-      children: [
-        {
-          id: 11,
-          title: '气源流量压力监测',
-          path: '/pipe-network/gas-source',
-          icon: markRaw(Monitor)
-        },
-        {
-          id: 12,
-          title: '末端流量压力监测',
-          path: '/pipe-network/end-point',
-          icon: markRaw(Monitor)
-        }
-      ]
+      title: '气源流量压力监测',
+      path: '/pipe-network/gas-source',
+      icon: markRaw(Monitor)
     },
     {
       id: 2,
+      title: '末端流量压力监测',
+      path: '/pipe-network/end-point',
+      icon: markRaw(Monitor)
+    },
+    {
+      id: 3,
       title: '管网分布',
       path: '/pipe-network/distribution',
       icon: markRaw(MapLocation)
     },
     {
-      id: 3,
+      id: 4,
       title: '设备管理',
       path: '/pipe-network/equipment',
       icon: markRaw(Tools),
-      children: [
-        {
-          id: 31,
-          title: '设备设施',
-          path: '/pipe-network/equipment-list',
-          icon: markRaw(Tools)
-        },
-        {
-          id: 32,
-          title: '设备维护',
-          path: '/pipe-network/equipment-maintenance',
-          icon: markRaw(Tools)
-        }
-      ]
-    },
-    {
-      id: 4,
-      title: '统计分析',
-      path: '/pipe-network/analysis',
-      icon: markRaw(DataBoard)
+      // children: [
+      //   {
+      //     id: 31,
+      //     title: '设备设施',
+      //     path: '/pipe-network/equipment-list',
+      //     icon: markRaw(Tools)
+      //   },
+      //   {
+      //     id: 32,
+      //     title: '设备维护',
+      //     path: '/pipe-network/equipment-maintenance',
+      //     icon: markRaw(Tools)
+      //   }
+      // ]
     }
   ],
   // 巡检管理菜单
   'inspection': [
     {
       id: 1,
-      title: '巡检任务',
+      title: '市政管网',
       path: '/inspection/tasks',
       icon: markRaw(MapLocation)
     },
     {
       id: 2,
-      title: '巡检管理',
+      title: '庭院管网',
       path: '/inspection/manage',
       icon: markRaw(Position),
-      children: [
-        {
-          id: 21,
-          title: '巡检路线',
-          path: '/inspection/routes',
-          icon: markRaw(Monitor)
-        },
-        {
-          id: 22,
-          title: '安检记录',
-          path: '/inspection/records',
-          icon: markRaw(WarningFilled)
-        }
-      ]
+      // children: [
+      //   {
+      //     id: 21,
+      //     title: '巡检路线',
+      //     path: '/inspection/routes',
+      //     icon: markRaw(Monitor)
+      //   },
+      //   {
+      //     id: 22,
+      //     title: '安检记录',
+      //     path: '/inspection/records',
+      //     icon: markRaw(WarningFilled)
+      //   }
+      // ]
     },
     {
       id: 3,
-      title: '巡检报告',
+      title: '入户安检',
       path: '/inspection/reports',
       icon: markRaw(Document)
     },
     {
       id: 4,
-      title: '异常处理',
+      title: '设备设施',
       path: '/inspection/issues',
       icon: markRaw(WarningFilled)
     }
