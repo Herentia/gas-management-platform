@@ -1,5 +1,5 @@
 <template>
-  <Header @menu-click="handleMenuClick" />
+  <Header :menu-type="currentMenuType" @menu-click="handleMenuClick" />
   <div class="pipe-network-view">
     <!-- 地图容器 -->
     <div class="map-content">
@@ -131,7 +131,7 @@ import Header from '@/components/layout/HeaderWithMenu.vue'
 import MapInfoDisplay from '@/components/map/MapInfoDisplay.vue'
 import MapControls from '@/components/map/MapControls.vue'
 import DynamicPanelContainer from './GasPipeControl/DynamicPanelContainer.vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import Map from 'ol/Map'
 import View from 'ol/View'
 import TileLayer from 'ol/layer/Tile'
@@ -171,6 +171,18 @@ import { ta } from 'element-plus/es/locales.mjs'
 
 // 导入动态弹窗组件
 import DynamicPopup from '@/components/map/DynamicPopup.vue'
+
+// 新增：获取路由参数
+const route = useRoute()
+const currentMenuType = ref('')
+
+// 监听路由参数变化
+watch(() => route.query.menuType, (newMenuType) => {
+  if (newMenuType) {
+    currentMenuType.value = newMenuType as string
+    console.log('当前菜单类型:', currentMenuType.value)
+  }
+}, { immediate: true })
 
 const bottomTableTitle = ref('数据列表')
 // 在脚本部分定义表格列配置
@@ -959,18 +971,32 @@ const gasData = ref([
 
 const tableLoading = ref(false)
 
-// 处理菜单点击
+// 修改菜单点击处理，根据菜单类型执行不同逻辑
 const handleMenuClick = (menuKey: string) => {
-  console.log('菜单点击:', menuKey)
-  activeMenu.value = menuKey
+  console.log('菜单点击:', menuKey, '当前菜单类型:', currentMenuType.value)
 
-  // 根据菜单键值控制面板显示
-  /**
-   * 树形结构面板 showLeftPanel.value = !showLeftPanel.value
-   * 气源设备状态面板 showGasStatusPanel.value = !showGasStatusPanel.value
-   * 底部表格面板 showBottomPanel.value = !showBottomPanel.value
-   * 管网类型面板 showPipeTypePanel.value = !showPipeTypePanel.value
-   */
+  // 根据不同的菜单类型执行不同的逻辑
+  switch (currentMenuType.value) {
+    case 'pipe-network':
+      handlePipeNetworkMenu(menuKey)
+      break
+    case 'inspection':
+      handleInspectionMenu(menuKey)
+      break
+    case 'engineering':
+      handleEngineeringMenu(menuKey)
+      break
+    case 'customer-service':
+      handleCustomerServiceMenu(menuKey)
+      break
+    default:
+      handleDefaultMenu(menuKey)
+  }
+}
+
+// 管网管理菜单处理
+const handlePipeNetworkMenu = (menuKey: string) => {
+  activeMenu.value = menuKey
   switch (menuKey) {
     case '/pipe-network/gas-source':
       showGasStatusPanel.value = !showGasStatusPanel.value
@@ -982,26 +1008,80 @@ const handleMenuClick = (menuKey: string) => {
       bottomTableTitle.value = '管网列表'
       showPipeTypePanel.value = !showPipeTypePanel.value
       showBottomPanel.value = !showBottomPanel.value
-      // tableColumns.value = gasSourceColumns.value
       tableData.value = gasData.value
       break
     case '/pipe-network/equipment':
       bottomTableTitle.value = '设备设施列表'
-      // 点击full-analysis时显示左侧面板和底部面板
       showLegendPanel.value = true
       showBottomPanel.value = true
       tableColumns.value = deviceColumns.value
       tableData.value = deviceTableData.value
       break
-    default:
-      // 其他菜单处理
-      break
   }
 
-  // 确保地图正确调整大小
   setTimeout(() => {
     map?.updateSize()
   }, 100)
+}
+
+// 巡检管理菜单处理
+const handleInspectionMenu = (menuKey: string) => {
+  console.log('巡检管理菜单点击:', menuKey)
+  // 这里添加巡检管理相关的面板控制逻辑
+  // 例如：显示巡检任务面板、巡检路线面板等
+  switch (menuKey) {
+    case '/inspection/tasks':
+      // 显示巡检任务面板
+      break
+    case '/inspection/routes':
+      // 显示巡检路线面板
+      break
+    case '/inspection/reports':
+      // 显示巡检报告面板
+      break
+  }
+}
+
+// 工程管理菜单处理
+const handleEngineeringMenu = (menuKey: string) => {
+  console.log('工程管理菜单点击:', menuKey)
+  // 这里添加工程管理相关的面板控制逻辑
+  switch (menuKey) {
+    case '/engineering/projects':
+      // 显示工程项目面板
+      break
+    case '/engineering/emergency':
+      // 显示应急抢险面板
+      break
+    case '/engineering/progress':
+      // 显示工程进度面板
+      break
+  }
+}
+
+// 客服管理菜单处理
+const handleCustomerServiceMenu = (menuKey: string) => {
+  console.log('客服管理菜单点击:', menuKey)
+  // 这里添加客服管理相关的面板控制逻辑
+  switch (menuKey) {
+    case '/customer/requests':
+      // 显示服务请求面板
+      break
+    case '/customer/info':
+      // 显示用户信息面板
+      break
+    case '/customer/consultation':
+      // 显示咨询管理面板
+      break
+  }
+}
+
+// 默认菜单处理
+const handleDefaultMenu = (menuKey: string) => {
+  console.log('默认菜单处理:', menuKey)
+  // 原有的处理逻辑
+  activeMenu.value = menuKey
+  // ... 原有逻辑
 }
 
 // 处理树节点点击
