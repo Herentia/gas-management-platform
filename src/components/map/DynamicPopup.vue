@@ -2,16 +2,23 @@
   <div class="dynamic-popup" :style="popupStyle">
     <!-- 头部 -->
     <div class="popup-header" :style="headerStyle">
-      <div class="header-content">
-        <div class="popup-title-section">
+      <div class="header-main">
+        <div class="title-section">
           <el-icon v-if="config.titleIcon" class="title-icon">
             <component :is="config.titleIcon" />
           </el-icon>
-          <h3 class="popup-title">{{ config.title || '详细信息' }}</h3>
+          <div class="title-content">
+            <h3 class="popup-title">{{ config.title || '详细信息' }}</h3>
+            <div class="popup-subtitle" v-if="config.subtitle">{{ config.subtitle }}</div>
+          </div>
         </div>
-        <div class="popup-subtitle" v-if="config.subtitle">{{ config.subtitle }}</div>
+        <el-button link :icon="Close" @click="handleClose" class="close-btn" size="small">
+          <!-- 添加文字提示 -->
+          <el-tooltip effect="dark" content="关闭" placement="top">
+            <span class="close-text">关闭</span>
+          </el-tooltip>
+        </el-button>
       </div>
-      <el-button link :icon="Close" @click="handleClose" class="close-btn" />
     </div>
 
     <!-- 内容区域 -->
@@ -73,10 +80,14 @@
     <!-- 操作按钮 -->
     <div class="popup-actions" v-if="showActions">
       <el-button v-for="action in config.actions" :key="action.key" :type="action.type || 'primary'" :icon="action.icon"
-        @click="handleAction(action)" class="action-btn">
+        @click="handleAction(action)" class="action-btn" size="small">
         {{ action.label }}
       </el-button>
-      <el-button @click="handleClose">关闭</el-button>
+    </div>
+
+    <!-- 底部关闭按钮（备用） -->
+    <div class="popup-footer" v-if="!showActions">
+      <el-button @click="handleClose" class="footer-close-btn">关闭</el-button>
     </div>
   </div>
 </template>
@@ -84,56 +95,13 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { Close } from '@element-plus/icons-vue'
+import { ElTooltip } from 'element-plus'
 
-// 字段配置接口
-interface FieldConfig {
-  key: string
-  label: string
-  path?: string // 数据路径，支持嵌套对象，如 'data.officialInfo.name'
-  defaultValue?: any
-  visible?: boolean
-  slot?: string // 自定义插槽名称
-  highlight?: boolean // 是否高亮显示
-  unit?: string // 单位
-  width?: string // 字段宽度
-}
-
-// 图表配置接口
-interface ChartConfig {
-  key: string
-  title: string
-  type: string // 'line' | 'bar' | 'pie' 等
-  data: any[]
-}
-
-// 操作按钮配置接口
-interface ActionConfig {
-  key: string
-  label: string
-  type?: 'primary' | 'success' | 'warning' | 'danger' | 'info'
-  icon?: any
-  handler?: (rowData: any) => void
-}
-
-// 弹窗配置接口
-interface PopupConfig {
-  title?: string
-  subtitle?: string
-  titleIcon?: any
-  displayType?: 'table' | 'cards' | 'custom' // 显示类型
-  fields: FieldConfig[] // 字段配置
-  charts?: ChartConfig[] // 图表配置
-  actions?: ActionConfig[] // 操作按钮
-  maxWidth?: string // 最大宽度
-  minWidth?: string // 最小宽度
-  maxHeight?: string // 最大高度
-  labelWidth?: string // 标签宽度
-  autoResize?: boolean // 是否自动调整大小
-}
+// ... 原有的接口定义保持不变 ...
 
 interface Props {
-  rowData: any // 行数据
-  config: PopupConfig // 弹窗配置
+  rowData: any
+  config: PopupConfig
   themeColors?: any
   onClose?: () => void
 }
@@ -179,7 +147,7 @@ const getFieldValue = (field: FieldConfig) => {
   if (!field.path) {
     return field.defaultValue
   }
-  // 支持嵌套对象路径，如 'data.officialInfo.name'
+
   const paths = field.path.split('.')
   let value = props.rowData
   for (const path of paths) {
@@ -199,7 +167,9 @@ const popupStyle = computed(() => {
     borderRadius: '8px',
     boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
     border: `1px solid ${props.themeColors.borderBlue}`,
-    overflow: 'hidden'
+    overflow: 'hidden',
+    display: 'flex',
+    flexDirection: 'column'
   }
 
   // 设置宽度
@@ -238,7 +208,6 @@ const handleViewDetail = () => {
 onMounted(() => {
   if (props.config.autoResize && contentRef.value) {
     nextTick(() => {
-      // 可以根据内容高度动态调整
       const contentHeight = contentRef.value?.scrollHeight || 0
       // 这里可以设置最大高度限制
     })
@@ -251,29 +220,42 @@ onMounted(() => {
   min-width: 300px;
   max-width: 600px;
   background: white;
+  position: relative;
 }
 
 .popup-header {
+  padding: 0;
+  color: white;
+  flex-shrink: 0;
+}
+
+.header-main {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   padding: 16px 20px;
-  color: white;
+  min-height: 60px;
+  box-sizing: border-box;
 }
 
-.header-content {
-  flex: 1;
-}
-
-.popup-title-section {
+.title-section {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 4px;
+  align-items: flex-start;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+  /* 防止内容溢出 */
 }
 
 .title-icon {
-  font-size: 18px;
+  font-size: 20px;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.title-content {
+  flex: 1;
+  min-width: 0;
 }
 
 .popup-title {
@@ -281,31 +263,45 @@ onMounted(() => {
   font-size: 16px;
   font-weight: 600;
   line-height: 1.4;
+  color: white;
+  word-wrap: break-word;
 }
 
 .popup-subtitle {
   font-size: 12px;
   opacity: 0.9;
   line-height: 1.4;
+  color: rgba(255, 255, 255, 0.9);
+  margin-top: 2px;
 }
 
 .close-btn {
-  color: rgba(255, 255, 255, 0.8);
-  padding: 4px;
+  color: rgba(255, 255, 255, 0.9) !important;
+  padding: 6px !important;
   margin-left: 12px;
   flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+  height: auto;
 }
 
 .close-btn:hover {
-  color: white;
-  background-color: rgba(255, 255, 255, 0.2);
-  border-radius: 4px;
+  color: white !important;
+  background: rgba(255, 255, 255, 0.2) !important;
+  transform: scale(1.05);
+}
+
+.close-text {
+  font-size: 12px;
+  margin-left: 4px;
 }
 
 .popup-content {
   padding: 20px;
   max-height: 60vh;
   overflow-y: auto;
+  flex: 1;
 }
 
 /* 表格形式样式 */
@@ -316,8 +312,8 @@ onMounted(() => {
 .info-row {
   display: flex;
   align-items: flex-start;
-  margin-bottom: 8px;
-  padding-bottom: 8px;
+  margin-bottom: 12px;
+  /* padding-bottom: 12px; */
   border-bottom: 1px solid #f0f0f0;
 }
 
@@ -330,13 +326,13 @@ onMounted(() => {
 .info-row.highlight-row {
   background: #f8fafc;
   margin: 0 -12px;
-  padding: 8px 12px;
-  border-radius: 4px;
+  padding: 12px;
+  border-radius: 6px;
   border-bottom: none;
 }
 
 .info-label {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   color: #666;
   flex-shrink: 0;
@@ -345,11 +341,12 @@ onMounted(() => {
 
 .info-value {
   flex: 1;
-  font-size: 13px;
+  font-size: 14px;
   color: #333;
   font-weight: 500;
-  word-break: break-all;
+  word-break: break-word;
   line-height: 1.5;
+  padding-left: 8px;
 }
 
 /* 卡片形式样式 */
@@ -438,10 +435,24 @@ onMounted(() => {
   padding: 16px 20px;
   border-top: 1px solid #f0f0f0;
   background: #f8fafc;
+  flex-shrink: 0;
 }
 
 .action-btn {
   flex: 1;
+}
+
+/* 底部关闭按钮 */
+.popup-footer {
+  padding: 12px 20px;
+  border-top: 1px solid #f0f0f0;
+  background: #f8fafc;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.footer-close-btn {
+  width: 100%;
 }
 
 /* 响应式设计 */
@@ -451,8 +462,9 @@ onMounted(() => {
     max-width: 90vw;
   }
 
-  .popup-header {
+  .header-main {
     padding: 12px 16px;
+    min-height: 56px;
   }
 
   .popup-content {
@@ -472,5 +484,30 @@ onMounted(() => {
   .action-btn {
     width: 100%;
   }
+
+  .close-text {
+    display: none;
+    /* 移动端隐藏文字 */
+  }
+}
+
+/* 确保关闭按钮始终可见 */
+:deep(.el-button) {
+  border: none;
+}
+
+:deep(.el-button--link) {
+  border: none !important;
+}
+
+/* 防止父组件样式覆盖 */
+.dynamic-popup {
+  z-index: 1003;
+  position: relative;
+}
+
+.popup-header {
+  position: relative;
+  z-index: 1;
 }
 </style>

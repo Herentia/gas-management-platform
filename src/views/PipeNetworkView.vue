@@ -186,7 +186,7 @@ watch(() => route.query.menuType, (newMenuType) => {
 
 const bottomTableTitle = ref('数据列表')
 // 在脚本部分定义表格列配置
-const tableColumns = ref([
+const gasColumns = ref([
   { prop: 'id', label: 'ID', width: 80 },
   { prop: 'name', label: '名称', minWidth: 120 },
   {
@@ -794,7 +794,12 @@ const treeData = ref([
   }
 ])
 
+/**
+ * 表格数据和列配置
+ */
 const tableData = ref<any>([])
+const tableColumns = ref<any>([])
+const popupType = ref('pipeline')
 // 表格数据   设备设施
 const deviceTableData = ref([
   {
@@ -1115,6 +1120,7 @@ const handlePipeNetworkMenu = (menuKey: string) => {
       bottomTableTitle.value = '管网列表'
       showPipeTypePanel.value = !showPipeTypePanel.value
       showBottomPanel.value = !showBottomPanel.value
+      tableColumns.value = gasColumns.value
       tableData.value = gasData.value
       break
     case '/pipe-network/equipment':
@@ -1143,6 +1149,7 @@ const handleInspectionMenu = (menuKey: string) => {
       showBottomPanel.value = !showBottomPanel.value
       tableColumns.value = gasInspectionColumns.value
       tableData.value = inspectionData.value
+      popupType.value = 'inspection'
       break
     case '/inspection/routes':
       // 显示巡检路线面板
@@ -1260,17 +1267,17 @@ const popupConfigs = {
     displayType: 'table',
     minWidth: '380px',
     fields: [
-      { key: 'recordName', label: '设备名称', highlight: true },
-      { key: 'status', label: '告警类型' },
-      { key: 'networkName', label: '告警级别', slot: 'warningLevel' },
-      { key: 'networkType', label: '告警描述' },
-      { key: 'handler', label: '开始时间' },
-      { key: 'handledAt', label: '持续时间' },
-      { key: 'coordinates', label: '处理建议' },
-      { key: 'myLocation', label: '处理建议' },
-      { key: 'locationDesc', label: '处理建议' },
-      { key: 'actionTaken', label: '处理建议' },
-      { key: 'remarks', label: '处理建议' }
+      { key: 'recordName', label: '记录名称', highlight: true },
+      { key: 'status', label: '状态' },
+      { key: 'networkName', label: '管网名称', slot: 'warningLevel' },
+      { key: 'networkType', label: '管网类型' },
+      { key: 'handler', label: '处理人' },
+      { key: 'handledAt', label: '处理时间' },
+      { key: 'coordinates', label: '定位坐标' },
+      { key: 'myLocation', label: '我的当前位置' },
+      { key: 'locationDesc', label: '地理位置描述' },
+      { key: 'actionTaken', label: '处理内容' },
+      { key: 'remarks', label: '备注' }
     ],
     // actions: [
     //   { key: 'confirm', label: '确认告警', type: 'warning' },
@@ -1413,7 +1420,7 @@ const handleTableRowClick = async (rowData: any) => {
     if (rowData.data.officialInfo) {
       // 给地图动画一点时间完成
       setTimeout(() => {
-        showOfficialInfoPopup(rowData.data.officialInfo, rowData.data.coordinates)
+        showOfficialInfoPopup(rowData.data.officialInfo, rowData.data.coordinates, popupType.value)
       }, 500)
     }
   }
