@@ -36,51 +36,51 @@ const routes: Array<RouteRecordRaw> = [
       breadcrumb: ['首页', '管网管理'],
     },
     // redirect: { name: 'gas-source' },
-    children: [
-      {
-        path: 'gasSourceFlowPressureDetection',
-        name: 'gasSourceFlowPressureDetection',
-        component: () =>
-          import('@/components/pipe-network/GasSourceFlowPressureDetectionModule.vue'),
-        meta: {
-          title: '气源监测 - 管网管理',
-          breadcrumb: ['首页', '管网管理', '气源流量压力监测'],
-        },
-      },
-      {
-        path: 'gas-source',
-        name: 'gas-source',
-        component: () => import('@/views/GasPipeControl/GasSourcePanel.vue'),
-        meta: { title: '管网监控', icon: 'monitor' },
-      },
-      {
-        path: 'end-point',
-        name: 'end-point',
-        component: () => import('@/components/pipe-network/EndPointModule.vue'),
-        meta: {
-          title: '末端监测 - 管网管理',
-          breadcrumb: ['首页', '管网管理', '末端流量压力'],
-        },
-      },
-      {
-        path: 'distribution',
-        name: 'distribution',
-        component: () => import('@/components/pipe-network/PipeDistributionModule.vue'),
-        meta: {
-          title: '管网分布 - 管网管理',
-          breadcrumb: ['首页', '管网管理', '管网分布'],
-        },
-      },
-      {
-        path: 'equipment',
-        name: 'equipment',
-        component: () => import('@/components/pipe-network/EquipmentModule.vue'),
-        meta: {
-          title: '设备设施 - 管网管理',
-          breadcrumb: ['首页', '管网管理', '设备设施'],
-        },
-      },
-    ],
+    // children: [
+    //   {
+    //     path: 'gasSourceFlowPressureDetection',
+    //     name: 'gasSourceFlowPressureDetection',
+    //     component: () =>
+    //       import('@/components/pipe-network/GasSourceFlowPressureDetectionModule.vue'),
+    //     meta: {
+    //       title: '气源监测 - 管网管理',
+    //       breadcrumb: ['首页', '管网管理', '气源流量压力监测'],
+    //     },
+    //   },
+    //   {
+    //     path: 'gas-source',
+    //     name: 'gas-source',
+    //     component: () => import('@/views/GasPipeControl/GasSourcePanel.vue'),
+    //     meta: { title: '管网监控', icon: 'monitor' },
+    //   },
+    //   {
+    //     path: 'end-point',
+    //     name: 'end-point',
+    //     component: () => import('@/components/pipe-network/EndPointModule.vue'),
+    //     meta: {
+    //       title: '末端监测 - 管网管理',
+    //       breadcrumb: ['首页', '管网管理', '末端流量压力'],
+    //     },
+    //   },
+    //   {
+    //     path: 'distribution',
+    //     name: 'distribution',
+    //     component: () => import('@/components/pipe-network/PipeDistributionModule.vue'),
+    //     meta: {
+    //       title: '管网分布 - 管网管理',
+    //       breadcrumb: ['首页', '管网管理', '管网分布'],
+    //     },
+    //   },
+    //   {
+    //     path: 'equipment',
+    //     name: 'equipment',
+    //     component: () => import('@/components/pipe-network/EquipmentModule.vue'),
+    //     meta: {
+    //       title: '设备设施 - 管网管理',
+    //       breadcrumb: ['首页', '管网管理', '设备设施'],
+    //     },
+    //   },
+    // ],
   },
   {
     path: '/inspection',

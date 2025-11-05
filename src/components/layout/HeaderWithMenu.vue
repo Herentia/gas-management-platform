@@ -204,25 +204,29 @@ const allMenuItems = {
       id: 1,
       title: '气源流量压力监测',
       path: '/pipe-network/gas-source',
-      icon: markRaw(Monitor)
+      icon: markRaw(Monitor),
+      children: []
     },
     {
       id: 2,
       title: '末端流量压力监测',
       path: '/pipe-network/end-point',
-      icon: markRaw(Monitor)
+      icon: markRaw(Monitor),
+      children: []
     },
     {
       id: 3,
       title: '管网分布',
       path: '/pipe-network/distribution',
-      icon: markRaw(MapLocation)
+      icon: markRaw(MapLocation),
+      children: []
     },
     {
       id: 4,
       title: '设备管理',
       path: '/pipe-network/equipment',
       icon: markRaw(Tools),
+      children: []
       // children: [
       //   {
       //     id: 31,
@@ -245,13 +249,15 @@ const allMenuItems = {
       id: 1,
       title: '市政管网',
       path: '/inspection/tasks',
-      icon: markRaw(MapLocation)
+      icon: markRaw(MapLocation),
+      children: []
     },
     {
       id: 2,
       title: '庭院管网',
       path: '/inspection/courtyard',
       icon: markRaw(Position),
+      children: []
       // children: [
       //   {
       //     id: 21,
@@ -271,13 +277,15 @@ const allMenuItems = {
       id: 3,
       title: '入户安检',
       path: '/inspection/HouseholdSafetyInspection',
-      icon: markRaw(Document)
+      icon: markRaw(Document),
+      children: []
     },
     {
       id: 4,
       title: '设备设施',
       path: '/inspection/equipments',
-      icon: markRaw(WarningFilled)
+      icon: markRaw(WarningFilled),
+      children: []
     }
   ],
   // 工程管理菜单
@@ -286,13 +294,15 @@ const allMenuItems = {
       id: 1,
       title: '服务应急抢险',
       path: '/engineering/emergency',
-      icon: markRaw(WarningFilled)
+      icon: markRaw(WarningFilled),
+      children: []
     },
     {
       id: 2,
       title: '工程建设管理',
       path: '/engineering/engineeringManagement‌',
-      icon: markRaw(DataBoard)
+      icon: markRaw(DataBoard),
+      children: []
     },
   ],
   // 客服管理菜单
@@ -321,19 +331,22 @@ const allMenuItems = {
       id: 2,
       title: '用户信息',
       path: '/customer/info',
-      icon: markRaw(User)
+      icon: markRaw(User),
+      children: []
     },
     {
       id: 3,
       title: '投诉处理',
       path: '/customer/complaints',
-      icon: markRaw(WarningFilled)
+      icon: markRaw(WarningFilled),
+      children: []
     },
     {
       id: 4,
       title: '服务评价',
       path: '/customer/feedback',
-      icon: markRaw(DataBoard)
+      icon: markRaw(DataBoard),
+      children: []
     }
   ]
 }

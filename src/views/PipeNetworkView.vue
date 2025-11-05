@@ -280,7 +280,7 @@ const showGasStatusPanel = ref(false)
 const gasStatusPanelWidth = ref(320)
 
 // 气源压力设备数据
-const gasStatusDevices = null;
+const gasStatusDevices = ref<any>(null);
 // const gasStatusDevices = ref([
 //   {
 //     id: 'FC1',
@@ -378,7 +378,11 @@ const handleGasStatusChange = (status: string) => {
 
 const exportGasStatusData = () => {
   console.log('导出气源压力数据')
-  const dataToExport = gasStatusDevices.value.map(device => ({
+  if (!gasStatusDevices.value) {
+    console.warn('没有可导出的气源压力数据')
+    return
+  }
+  const dataToExport = gasStatusDevices.value.map((device: any) => ({
     设备名称: device.name,
     状态: device.status === 'normal' ? '正常' : '异常',
     压力值: device.pressure + ' MPa',
@@ -1364,7 +1368,7 @@ const handleDefaultMenu = (menuKey: string) => {
 // }
 
 // 定义不同数据类型的弹窗配置
-const popupConfigs = {
+const popupConfigs: any = {
   // 管网信息弹窗配置
   pipeline: {
     title: '管网信息',
@@ -1534,7 +1538,7 @@ const showOfficialInfoPopup = async (officialInfo: any, coordinates: any, dataTy
       onClose: () => {
         removeDevicePopup(popupId)
       },
-      onAction: (action, rowData) => {
+      onAction: (action: any, rowData: any) => {
         console.log('执行操作:', action.key, rowData)
         // 处理不同的操作
         handlePopupAction(action.key, rowData)
@@ -2042,7 +2046,7 @@ const getFeatureTypeMapping = (legendType: string): string => {
 
 // 创建图例相关的样式
 const createLegendStyle = (featureType: string, isSelected: boolean) => {
-  const baseStyle = {
+  const baseStyle: Record<string, { color: string; radius: number }> = {
     station: { color: '#1E6FBA', radius: 8 },
     cabinet: { color: '#FF6B6B', radius: 6 },
     skid: { color: '#4ECDC4', radius: 6 },
