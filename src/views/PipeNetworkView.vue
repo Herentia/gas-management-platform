@@ -214,16 +214,6 @@ const deviceColumns = ref([
   { prop: 'deviceAddress', label: '设备地址', width: 120 },
 ])
 
-const warningColumns = ref([
-  { prop: 'id', label: '告警ID', width: 100 },
-  { prop: 'deviceName', label: '设备名称', minWidth: 120 },
-  { prop: 'warningType', label: '告警类型', width: 100 },
-  { prop: 'level', label: '告警级别', width: 100, slot: 'level' },
-  { prop: 'description', label: '告警描述', minWidth: 200 },
-  { prop: 'startTime', label: '开始时间', width: 160 },
-  { prop: 'status', label: '处理状态', width: 100, slot: 'status' }
-])
-
 // 在现有的响应式数据中添加图例面板控制
 const showLegendPanel = ref(false)
 // 管网类型面板
@@ -969,6 +959,123 @@ const gasData = ref([
   }
 ])
 
+const gasInspectionColumns = ref([
+  { prop: 'id', label: '序号', width: 100 },
+  { prop: 'name', label: '管网名称', minWidth: 120 },
+  { prop: 'InspectionPersonnel', label: '巡检人员', width: 100 },
+  { prop: 'inspectionRules', label: '巡检规则', width: 100 },
+  { prop: 'status', label: '巡检状态', minWidth: 200, slot: 'status' },
+  { prop: 'updateTime', label: '开始时间', width: 160 },
+])
+// 表格数据   巡检数据
+const inspectionData = ref([
+  {
+    id: '1',                              // 序号
+    name: '北线主干管-001',                // 名称
+    InspectionPersonnel: '曹栋梁',        // 巡检人员
+    inspectionRules: '日常巡检',          // 巡检规则
+    status: '正常',                      // 状态
+    location: '116.3974, 39.9093',
+    updateTime: '2024-01-20 10:30:00',
+    data: {
+      coordinates: [[116.3974, 39.9093], [116.4074, 39.9193]],
+      officialInfo: {
+        // 记录名称、类型、状态、管网名称、管网类型、处理人、处理时间、定位坐标、我的当前位置、地理位置描述、处理内容、备注
+        "recordName": "压力异常记录-P001",
+        "type": "压力异常",
+        "status": "已处理",
+        "networkName": "北线主干管-001",
+        "networkType": "高压管道",
+        "handler": "张三",
+        "handledAt": "2024-01-20 12:05:00",
+        "coordinates": [116.3974, 39.9093],
+        "myLocation": "116.3975, 39.9094",
+        "locationDesc": "主干管线与辅路交叉口北侧50米处",
+        "actionTaken": "现场更换密封圈并复压，压力恢复至正常范围",
+        "remarks": "需7天内复查并记录结果"
+      }
+    }
+  },
+  {
+    id: '2',
+    name: '北线主干管-002',
+    InspectionPersonnel: '曹栋梁',        // 巡检人员
+    inspectionRules: '日常巡检',          // 巡检规则
+    status: '正常',
+    location: '116.4074, 39.9193',
+    updateTime: '2024-01-20 09:15:00',
+    data: {
+      coordinates: [116.4074, 39.9193],
+      officialInfo: {
+        "recordName": "压力异常记录-P001",
+        "type": "压力异常",
+        "status": "已处理",
+        "networkName": "北线主干管-001",
+        "networkType": "高压管道",
+        "handler": "张三",
+        "handledAt": "2024-01-20 12:05:00",
+        "coordinates": [116.3974, 39.9093],
+        "myLocation": "116.3975, 39.9094",
+        "locationDesc": "主干管线与辅路交叉口北侧50米处",
+        "actionTaken": "现场更换密封圈并复压，压力恢复至正常范围",
+        "remarks": "需7天内复查并记录结果"
+      }
+    }
+  },
+  {
+    id: '3',
+    name: '北线主干管-002',
+    InspectionPersonnel: '曹栋梁',        // 巡检人员
+    inspectionRules: '日常巡检',          // 巡检规则
+    status: '警告',
+    location: '116.4174, 39.9093',
+    updateTime: '2024-01-20 11:20:00',
+    data: {
+      coordinates: [116.4174, 39.9093],
+      officialInfo: {
+        "recordName": "压力异常记录-P001",
+        "type": "压力异常",
+        "status": "已处理",
+        "networkName": "北线主干管-001",
+        "networkType": "高压管道",
+        "handler": "张三",
+        "handledAt": "2024-01-20 12:05:00",
+        "coordinates": [116.3974, 39.9093],
+        "myLocation": "116.3975, 39.9094",
+        "locationDesc": "主干管线与辅路交叉口北侧50米处",
+        "actionTaken": "现场更换密封圈并复压，压力恢复至正常范围",
+        "remarks": "需7天内复查并记录结果"
+      }
+    }
+  },
+  {
+    id: '4',
+    name: '北线主干管-004',
+    InspectionPersonnel: '曹栋梁',        // 巡检人员
+    inspectionRules: '日常巡检',          // 巡检规则
+    status: '正常',
+    location: '116.4024, 39.9143',
+    updateTime: '2024-01-20 08:45:00',
+    data: {
+      coordinates: [116.4024, 39.9143],
+      officialInfo: {
+        "recordName": "压力异常记录-P001",
+        "type": "压力异常",
+        "status": "已处理",
+        "networkName": "北线主干管-001",
+        "networkType": "高压管道",
+        "handler": "张三",
+        "handledAt": "2024-01-20 12:05:00",
+        "coordinates": [116.3974, 39.9093],
+        "myLocation": "116.3975, 39.9094",
+        "locationDesc": "主干管线与辅路交叉口北侧50米处",
+        "actionTaken": "现场更换密封圈并复压，压力恢复至正常范围",
+        "remarks": "需7天内复查并记录结果"
+      }
+    }
+  }
+])
+
 const tableLoading = ref(false)
 
 // 修改菜单点击处理，根据菜单类型执行不同逻辑
@@ -1033,6 +1140,9 @@ const handleInspectionMenu = (menuKey: string) => {
     case '/inspection/tasks':
       // 显示巡检任务面板
       bottomTableTitle.value = '市政管网列表'
+      showBottomPanel.value = !showBottomPanel.value
+      tableColumns.value = gasInspectionColumns.value
+      tableData.value = inspectionData.value
       break
     case '/inspection/routes':
       // 显示巡检路线面板
@@ -1142,27 +1252,31 @@ const popupConfigs = {
     ]
   },
 
-  // 告警信息弹窗配置
-  warning: {
-    title: '告警信息',
+  // 巡检信息弹窗配置  记录名称、类型、状态、管网名称、管网类型、处理人、处理时间、定位坐标、我的当前位置、地理位置描述、处理内容、备注
+  inspection: {
+    title: '巡检记录详情',
     titleIcon: 'Warning',
-    subtitle: '需要及时处理',
+    // subtitle: '需要及时处理',
     displayType: 'table',
     minWidth: '380px',
     fields: [
-      { key: 'deviceName', label: '设备名称', highlight: true },
-      { key: 'warningType', label: '告警类型' },
-      { key: 'level', label: '告警级别', slot: 'warningLevel' },
-      { key: 'description', label: '告警描述' },
-      { key: 'startTime', label: '开始时间' },
-      { key: 'duration', label: '持续时间' },
-      { key: 'suggestion', label: '处理建议' }
+      { key: 'recordName', label: '设备名称', highlight: true },
+      { key: 'status', label: '告警类型' },
+      { key: 'networkName', label: '告警级别', slot: 'warningLevel' },
+      { key: 'networkType', label: '告警描述' },
+      { key: 'handler', label: '开始时间' },
+      { key: 'handledAt', label: '持续时间' },
+      { key: 'coordinates', label: '处理建议' },
+      { key: 'myLocation', label: '处理建议' },
+      { key: 'locationDesc', label: '处理建议' },
+      { key: 'actionTaken', label: '处理建议' },
+      { key: 'remarks', label: '处理建议' }
     ],
-    actions: [
-      { key: 'confirm', label: '确认告警', type: 'warning' },
-      { key: 'handle', label: '立即处理', type: 'danger' },
-      { key: 'ignore', label: '忽略', type: 'info' }
-    ]
+    // actions: [
+    //   { key: 'confirm', label: '确认告警', type: 'warning' },
+    //   { key: 'handle', label: '立即处理', type: 'danger' },
+    //   { key: 'ignore', label: '忽略', type: 'info' }
+    // ]
   }
 }
 
