@@ -972,6 +972,22 @@ const gasInspectionColumns = ref([
   { prop: 'status', label: '巡检状态', minWidth: 200, slot: 'status' },
   { prop: 'updateTime', label: '开始时间', width: 160 },
 ])
+
+const equipmentInspectionColumns = ref([
+  { prop: 'id', label: '序号', width: 100 },
+  { prop: 'name', label: '设备名称', minWidth: 120 },
+  { prop: 'InspectionPersonnel', label: '设备类型', width: 100 },
+  { prop: 'inspectionRules', label: '设备编号', width: 100 },
+  { prop: 'inspectionRules', label: '设备地址', width: 100 },
+  { prop: 'inspectionRules', label: '巡检人员', width: 100 },
+  { prop: 'inspectionRules', label: '巡检规则', width: 100 },
+  { prop: 'status', label: '巡检状态', minWidth: 200, slot: 'status' },
+  { prop: 'updateTime', label: '开始时间', width: 160 },
+])
+
+// 服务应急抢险
+// 序号、服务应急抢险编号、应急抢险位置、
+
 // 表格数据   巡检数据
 const inspectionData = ref([
   {
@@ -1081,6 +1097,126 @@ const inspectionData = ref([
   }
 ])
 
+const deviceData = ref([
+  {
+    id: '1',                              // 序号
+    name: '设备-001',                // 名称
+    equipmentType: '调压站',          // 设备类型
+    equipmentNo: 'TRZ-A01',           // 设备编号
+    equipmentAddress: '北京市朝阳区建国路88号', // 设备地址
+    InspectionPersonnel: '曹栋梁',        // 巡检人员
+    inspectionRules: '日常巡检',          // 巡检规则
+    status: '正常',                      // 状态
+    location: '116.3974, 39.9093',
+    updateTime: '2024-01-20 10:30:00',
+    data: {
+      coordinates: [[116.3974, 39.9093], [116.4074, 39.9193]],
+      officialInfo: {
+        // 设备名称、设备类型、设备编号、设备地址、状态、处理人、处理时间、定位坐标、我的当前位置、地理位置描述、处理内容、备注
+        "deviceName": "调压站-A01",
+        "deviceType": "调压站",
+        "deviceNo": "TRZ-A01",
+        "deviceAddress": "北京市朝阳区建国路88号",
+        "status": "正常",
+        "handler": "李四",
+        "handledAt": "2024-01-20 12:30:00",
+        "coordinates": [116.3974, 39.9093],
+        "myLocation": "116.3975, 39.9094",
+        "locationDesc": "建国路与光华路交叉口东侧100米处",
+        "actionTaken": "设备运行正常，无异常情况",
+        "remarks": "下次巡检时间：2024-01-27"
+      }
+    }
+  },
+  {
+    id: '2',
+    name: '设备-002',
+    equipmentType: '调压站',          // 设备类型
+    equipmentNo: 'TRZ-A01',           // 设备编号
+    equipmentAddress: '北京市朝阳区建国路88号', // 设备地址
+    InspectionPersonnel: '曹栋梁',        // 巡检人员
+    inspectionRules: '日常巡检',          // 巡检规则
+    status: '正常',
+    location: '116.4074, 39.9193',
+    updateTime: '2024-01-20 09:15:00',
+    data: {
+      coordinates: [116.4074, 39.9193],
+      officialInfo: {
+        "deviceName": "调压站-A01",
+        "deviceType": "调压站",
+        "deviceNo": "TRZ-A01",
+        "deviceAddress": "北京市朝阳区建国路88号",
+        "status": "正常",
+        "handler": "李四",
+        "handledAt": "2024-01-20 12:30:00",
+        "coordinates": [116.4074, 39.9193],
+        "myLocation": "116.3975, 39.9094",
+        "locationDesc": "建国路与光华路交叉口东侧100米处",
+        "actionTaken": "设备运行正常，无异常情况",
+        "remarks": "下次巡检时间：2024-01-27"
+      }
+    }
+  },
+  {
+    id: '3',
+    name: '设备-003',
+    equipmentType: '调压站',          // 设备类型
+    equipmentNo: 'TRZ-A01',           // 设备编号
+    equipmentAddress: '北京市朝阳区建国路88号', // 设备地址
+    InspectionPersonnel: '曹栋梁',        // 巡检人员
+    inspectionRules: '日常巡检',          // 巡检规则
+    status: '警告',
+    location: '116.4174, 39.9093',
+    updateTime: '2024-01-20 11:20:00',
+    data: {
+      coordinates: [116.4174, 39.9093],
+      officialInfo: {
+        "deviceName": "调压站-A01",
+        "deviceType": "调压站",
+        "deviceNo": "TRZ-A01",
+        "deviceAddress": "北京市朝阳区建国路88号",
+        "status": "正常",
+        "handler": "李四",
+        "handledAt": "2024-01-20 12:30:00",
+        "coordinates": [116.3974, 39.9093],
+        "myLocation": "116.3975, 39.9094",
+        "locationDesc": "建国路与光华路交叉口东侧100米处",
+        "actionTaken": "设备运行正常，无异常情况",
+        "remarks": "下次巡检时间：2024-01-27"
+      }
+    }
+  },
+  {
+    id: '4',
+    name: '设备-004',
+    equipmentType: '调压站',          // 设备类型
+    equipmentNo: 'TRZ-A01',           // 设备编号
+    equipmentAddress: '北京市朝阳区建国路88号', // 设备地址
+    InspectionPersonnel: '曹栋梁',        // 巡检人员
+    inspectionRules: '日常巡检',          // 巡检规则
+    status: '正常',
+    location: '116.4024, 39.9143',
+    updateTime: '2024-01-20 08:45:00',
+    data: {
+      coordinates: [116.4024, 39.9143],
+      officialInfo: {
+        "deviceName": "调压站-A01",
+        "deviceType": "调压站",
+        "deviceNo": "TRZ-A01",
+        "deviceAddress": "北京市朝阳区建国路88号",
+        "status": "正常",
+        "handler": "李四",
+        "handledAt": "2024-01-20 12:30:00",
+        "coordinates": [116.4024, 39.9143],
+        "myLocation": "116.3975, 39.9094",
+        "locationDesc": "建国路与光华路交叉口东侧100米处",
+        "actionTaken": "设备运行正常，无异常情况",
+        "remarks": "下次巡检时间：2024-01-27"
+      }
+    }
+  }
+])
+
 const tableLoading = ref(false)
 
 // 修改菜单点击处理，根据菜单类型执行不同逻辑
@@ -1151,11 +1287,29 @@ const handleInspectionMenu = (menuKey: string) => {
       tableData.value = inspectionData.value
       popupType.value = 'inspection'
       break
-    case '/inspection/routes':
+    case '/inspection/courtyard':
       // 显示巡检路线面板
+      bottomTableTitle.value = '庭院管网列表'
+      showBottomPanel.value = !showBottomPanel.value
+      tableColumns.value = gasInspectionColumns.value
+      tableData.value = inspectionData.value
+      popupType.value = 'inspection'
       break
-    case '/inspection/reports':
+    case '/inspection/HouseholdSafetyInspection':
       // 显示巡检报告面板
+      bottomTableTitle.value = '庭院管网列表'
+      showBottomPanel.value = !showBottomPanel.value
+      tableColumns.value = gasInspectionColumns.value
+      tableData.value = inspectionData.value
+      popupType.value = 'inspection'
+      break
+    case '/inspection/equipments':
+      // 显示巡检报告面板
+      bottomTableTitle.value = '设备设施列表'
+      showBottomPanel.value = !showBottomPanel.value
+      tableColumns.value = equipmentInspectionColumns.value
+      tableData.value = deviceData.value
+      popupType.value = 'equipments'
       break
   }
 }
@@ -1165,13 +1319,10 @@ const handleEngineeringMenu = (menuKey: string) => {
   console.log('工程管理菜单点击:', menuKey)
   // 这里添加工程管理相关的面板控制逻辑
   switch (menuKey) {
-    case '/engineering/projects':
-      // 显示工程项目面板
-      break
     case '/engineering/emergency':
       // 显示应急抢险面板
       break
-    case '/engineering/progress':
+    case '/engineering/engineeringManagement':
       // 显示工程进度面板
       break
   }
@@ -1271,6 +1422,33 @@ const popupConfigs = {
       { key: 'status', label: '状态' },
       { key: 'networkName', label: '管网名称', slot: 'warningLevel' },
       { key: 'networkType', label: '管网类型' },
+      { key: 'handler', label: '处理人' },
+      { key: 'handledAt', label: '处理时间' },
+      { key: 'coordinates', label: '定位坐标' },
+      { key: 'myLocation', label: '我的当前位置' },
+      { key: 'locationDesc', label: '地理位置描述' },
+      { key: 'actionTaken', label: '处理内容' },
+      { key: 'remarks', label: '备注' }
+    ],
+    // actions: [
+    //   { key: 'confirm', label: '确认告警', type: 'warning' },
+    //   { key: 'handle', label: '立即处理', type: 'danger' },
+    //   { key: 'ignore', label: '忽略', type: 'info' }
+    // ]
+  },
+
+  equipments: {
+    title: '设备巡检详情',
+    titleIcon: 'Monitor',
+    // subtitle: '需要及时处理',
+    displayType: 'table',
+    minWidth: '380px',
+    fields: [
+      { key: 'deviceName', label: '设备名称', highlight: true },
+      { key: 'deviceType', label: '设备类型' },
+      { key: 'deviceNo', label: '设备编号' },
+      { key: 'deviceAddress', label: '设备地址' },
+      { key: 'status', label: '状态' },
       { key: 'handler', label: '处理人' },
       { key: 'handledAt', label: '处理时间' },
       { key: 'coordinates', label: '定位坐标' },

@@ -250,7 +250,7 @@ const allMenuItems = {
     {
       id: 2,
       title: '庭院管网',
-      path: '/inspection/manage',
+      path: '/inspection/courtyard',
       icon: markRaw(Position),
       // children: [
       //   {
@@ -270,13 +270,13 @@ const allMenuItems = {
     {
       id: 3,
       title: '入户安检',
-      path: '/inspection/reports',
+      path: '/inspection/HouseholdSafetyInspection',
       icon: markRaw(Document)
     },
     {
       id: 4,
       title: '设备设施',
-      path: '/inspection/issues',
+      path: '/inspection/equipments',
       icon: markRaw(WarningFilled)
     }
   ],
@@ -284,42 +284,16 @@ const allMenuItems = {
   'engineering': [
     {
       id: 1,
-      title: '项目管理',
-      path: '/engineering/projects',
-      icon: markRaw(Tools),
-      children: [
-        {
-          id: 11,
-          title: '工程项目',
-          path: '/engineering/project-list',
-          icon: markRaw(Tools)
-        },
-        {
-          id: 12,
-          title: '工程进度',
-          path: '/engineering/progress',
-          icon: markRaw(Monitor)
-        }
-      ]
-    },
-    {
-      id: 2,
-      title: '应急抢险',
+      title: '服务应急抢险',
       path: '/engineering/emergency',
       icon: markRaw(WarningFilled)
     },
     {
-      id: 3,
-      title: '质量验收',
-      path: '/engineering/quality',
+      id: 2,
+      title: '工程建设管理',
+      path: '/engineering/engineeringManagement‌',
       icon: markRaw(DataBoard)
     },
-    {
-      id: 4,
-      title: '工程档案',
-      path: '/engineering/archive',
-      icon: markRaw(Document)
-    }
   ],
   // 客服管理菜单
   'customer-service': [
