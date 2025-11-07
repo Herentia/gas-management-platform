@@ -119,8 +119,8 @@
         </div>
 
         <!-- 图例面板 -->
-        <LegendPanel :visible="showLegendPanel" :theme-colors="gasBlueTheme" @close="showLegendPanel = false"
-          @selection-change="handleLegendSelectionChange" />
+        <LegendPanel :visible="showLegendPanel" :legend-items="legendItems" :title="legendTitle"
+          @selection-change="handleLegendSelectionChange" @close="showLegendPanel = false" />
       </div>
     </div>
   </div>
@@ -147,7 +147,7 @@ import { Style, Stroke, Circle, Fill } from 'ol/style'
 // 原有导入保持不变
 import TreeStructure from '@/components/map/TreeStructure.vue'
 import DataTable from '@/components/map/DataTable.vue'
-import { Folder, Grid, Refresh, Download, Close } from '@element-plus/icons-vue'
+import { Folder, Grid, Refresh, Download, Close, Box, SetUp, Switch, Monitor, OfficeBuilding } from '@element-plus/icons-vue'
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 
 // 原有导入保持不变
@@ -1449,6 +1449,9 @@ const handleMenuClick = (menuKey: string) => {
   }
 }
 
+const legendItems = ref<any>([])
+const legendTitle = ref('设备图例')
+
 // 管网管理菜单处理
 const handlePipeNetworkMenu = (menuKey: string) => {
   activeMenu.value = menuKey
@@ -1468,6 +1471,15 @@ const handlePipeNetworkMenu = (menuKey: string) => {
       break
     case '/pipe-network/equipment':
       bottomTableTitle.value = '设备设施列表'
+      legendItems.value = [
+        { id: 1, name: '调压箱', selected: false, color: '#1E6FBA', icon: Box, count: 5 },
+        { id: 2, name: '调压柜', selected: true, color: '#FF6B6B', icon: Box, count: 3 },
+        { id: 3, name: '撬装柜', selected: false, color: '#4ECDC4', icon: SetUp, count: 3 },
+        { id: 4, name: '阀门', selected: false, color: '#45B7D1', icon: Switch, count: 3 },
+        { id: 5, name: '流量计', selected: false, color: '#FFA07A', icon: DataLine, count: 3 },
+        { id: 6, name: '压力计', selected: false, color: '#98D8C8', icon: Monitor, count: 3 },
+        { id: 7, name: '场站', selected: false, color: '#9B59B6', icon: OfficeBuilding, count: 3 }
+      ]
       showLegendPanel.value = true
       showBottomPanel.value = true
       tableColumns.value = deviceColumns.value
@@ -1551,6 +1563,13 @@ const handleCustomerServiceMenu = (menuKey: string) => {
   switch (menuKey) {
     case '/customer/service':
       // 显示服务客服面板
+      legendItems.value = [
+        { id: 1, name: '小区', selected: false, color: '#1E6FBA', icon: Box, count: 5 },
+        { id: 2, name: '商业', selected: true, color: '#FF6B6B', icon: Box, count: 3 },
+        { id: 3, name: '学校', selected: false, color: '#4ECDC4', icon: SetUp, count: 3 },
+        { id: 4, name: '医院', selected: false, color: '#45B7D1', icon: Switch, count: 3 },
+      ]
+      legendTitle.value = '楼栋图例'
       showLegendPanel.value = true
       bottomTableTitle.value = '工程建设管理列表'
       showBottomPanel.value = !showBottomPanel.value
