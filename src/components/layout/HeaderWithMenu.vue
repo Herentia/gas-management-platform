@@ -309,45 +309,10 @@ const allMenuItems = {
   'customer-service': [
     {
       id: 1,
-      title: '客户服务',
+      title: '客户服务管理',
       path: '/customer/service',
       icon: markRaw(UserFilled),
-      children: [
-        {
-          id: 11,
-          title: '服务请求',
-          path: '/customer/requests',
-          icon: markRaw(UserFilled)
-        },
-        {
-          id: 12,
-          title: '咨询管理',
-          path: '/customer/consultation',
-          icon: markRaw(ChatDotRound)
-        }
-      ]
     },
-    {
-      id: 2,
-      title: '用户信息',
-      path: '/customer/info',
-      icon: markRaw(User),
-      children: []
-    },
-    {
-      id: 3,
-      title: '投诉处理',
-      path: '/customer/complaints',
-      icon: markRaw(WarningFilled),
-      children: []
-    },
-    {
-      id: 4,
-      title: '服务评价',
-      path: '/customer/feedback',
-      icon: markRaw(DataBoard),
-      children: []
-    }
   ]
 }
 

@@ -24,8 +24,34 @@
             {{ field.label }}：
           </div>
           <div class="info-value">
-            <template v-if="field.slot">
-              <slot :name="field.slot" :value="getFieldValue(field)" :row="rowData"></slot>
+            <template v-if="field.slot && slots && slots[field.slot]">
+              <!-- 使用渲染函数 -->
+              <component :is="slots[field.slot]({ value: getFieldValue(field), row: rowData })" />
+            </template>
+            <template v-else-if="field.slot === 'photos'">
+              <!-- 内置的图片显示逻辑 -->
+              <div class="photo-gallery">
+                <div v-if="getFieldValue(field) && getFieldValue(field).length > 0" class="photo-list">
+                  <el-image v-for="(photo, index) in getFieldValue(field)" :key="index" :src="photo"
+                    :preview-src-list="getFieldValue(field)" :initial-index="index" fit="cover" class="photo-item"
+                    :alt="`${field.label} ${index + 1}`">
+                    <template #error>
+                      <div class="image-error">
+                        <el-icon>
+                          <Picture />
+                        </el-icon>
+                        <span>图片加载失败</span>
+                      </div>
+                    </template>
+                  </el-image>
+                </div>
+                <div v-else class="no-photos">
+                  <el-icon>
+                    <Picture />
+                  </el-icon>
+                  <span>暂无照片</span>
+                </div>
+              </div>
             </template>
             <template v-else>
               {{ getFieldValue(field) || '-' }}
@@ -83,7 +109,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, nextTick } from 'vue'
-import { Close } from '@element-plus/icons-vue'
+import { Close, Picture } from '@element-plus/icons-vue'
 
 // 字段配置接口
 interface FieldConfig {
@@ -131,11 +157,14 @@ interface PopupConfig {
   autoResize?: boolean // 是否自动调整大小
 }
 
+// 在 DynamicPopup 组件的 Props 接口中添加 slots
 interface Props {
-  rowData: any // 行数据
-  config: PopupConfig // 弹窗配置
+  rowData: any
+  config: PopupConfig
   themeColors?: any
   onClose?: () => void
+  onAction?: (action: ActionConfig, rowData: any) => void
+  slots?: Record<string, (props: { value: any; row: any }) => any> // 新增 slots prop
 }
 
 const props = withDefaults(defineProps<Props>(), {

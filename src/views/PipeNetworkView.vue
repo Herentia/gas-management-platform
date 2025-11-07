@@ -171,6 +171,7 @@ import { ta } from 'element-plus/es/locales.mjs'
 
 // 导入动态弹窗组件
 import DynamicPopup from '@/components/map/DynamicPopup.vue'
+import { add } from 'ol/coordinate'
 
 // 新增：获取路由参数
 const route = useRoute()
@@ -1017,6 +1018,69 @@ const constructionColumns = ref([
   { prop: 'remarks', label: '备注', minWidth: 200 },
 ])
 
+// 服务客服管理
+// 序号、客服编号、客服名称、初装时间、改管时间、户数、用户姓名、手机号码、身份证号码、位置信息、备注
+const customerServiceColumns = ref([
+  { prop: 'id', label: '序号', width: 80 },
+  { prop: 'serviceNo', label: '客服编号', minWidth: 120 },
+  { prop: 'serviceName', label: '客服名称', minWidth: 150 },
+  { prop: 'installationDate', label: '初装时间', width: 120 },
+  { prop: 'pipeChangeDate', label: '改管时间', width: 120 },
+  { prop: 'households', label: '户数', width: 100 },
+  { prop: 'userName', label: '用户姓名', minWidth: 120 },
+  { prop: 'phoneNumber', label: '手机号码', minWidth: 140 },
+  { prop: 'idNumber', label: '身份证号码', minWidth: 180 },
+  { prop: 'locationInfo', label: '位置信息', minWidth: 200 },
+  { prop: 'remarks', label: '备注', minWidth: 200 },
+])
+
+const customerServiceData = ref([
+  {
+    id: 'CS001',
+    serviceNo: 'KF-20241101-001',
+    serviceName: '朝阳区客户服务',
+    installationDate: '2020-05-15',
+    pipeChangeDate: '2023-08-20',
+    households: 150,
+    userName: '张三',
+    phoneNumber: '13700137000',
+    idNumber: '110101199001011234',
+    locationInfo: '北京市朝阳区建国路88号',
+    remarks: '定期回访，确保用户满意度',
+    data: {
+      coordinates: [116.4074, 39.9193],
+      officialInfo: {
+        communityName: '朝阳区客户服务',
+        address: '北京市朝阳区建国路88号',
+        userName: '张三',
+        phoneNumber: '13700137000',
+      }
+    }
+  },
+  {
+    id: 'CS002',
+    serviceNo: 'KF-20251101-002',
+    serviceName: '海淀区客户服务',
+    installationDate: '2019-03-10',
+    pipeChangeDate: '2022-11-05',
+    households: 200,
+    userName: '李四',
+    phoneNumber: '13600136000',
+    idNumber: '110102198902022345',
+    locationInfo: '北京市海淀区中关村大街27号',
+    remarks: '关注老年用户的用气安全',
+    data: {
+      coordinates: [116.4024, 39.9143],
+      officialInfo: {
+        communityName: '海淀区客户服务',
+        address: '北京市海淀区中关村大街27号',
+        userName: '李四',
+        phoneNumber: '13600136000',
+      }
+    }
+  }
+])
+
 const constructionData = ref([
   {
     id: 'C001',
@@ -1485,8 +1549,14 @@ const handleCustomerServiceMenu = (menuKey: string) => {
   console.log('客服管理菜单点击:', menuKey)
   // 这里添加客服管理相关的面板控制逻辑
   switch (menuKey) {
-    case '/customer/requests':
-      // 显示服务请求面板
+    case '/customer/service':
+      // 显示服务客服面板
+      showLegendPanel.value = true
+      bottomTableTitle.value = '工程建设管理列表'
+      showBottomPanel.value = !showBottomPanel.value
+      tableColumns.value = customerServiceColumns.value
+      tableData.value = customerServiceData.value
+      popupType.value = 'customerService'
       break
     case '/customer/info':
       // 显示用户信息面板
@@ -1619,9 +1689,10 @@ const popupConfigs: any = {
   // 服务应急抢险弹窗配置
 
   // 工程建设管理弹窗配置
+  // 确保工程建设管理配置中的 currentPhotos 字段使用 photos 插槽
   construction: {
     title: '工程建设详情',
-    titleIcon: 'Construction',
+    titleIcon: 'Monitor',
     displayType: 'table',
     minWidth: '400px',
     fields: [
@@ -1633,12 +1704,36 @@ const popupConfigs: any = {
       { key: 'contactNumber', label: '联系电话' },
       { key: 'lastInspectionTime', label: '最后看护时间' },
       { key: 'taskAssignment', label: '任务分派' },
-      { key: 'currentPhotos', label: '现状照片' }
+      {
+        key: 'currentPhotos',
+        label: '现状照片',
+        slot: 'photos', // 使用 photos 插槽
+        width: '200px'
+      }
     ],
     actions: [
       { key: 'viewDetail', label: '查看详情', type: 'primary' }
     ]
   },
+
+  // 客服服务弹窗配置
+  // 小区名称、地址、用户、联系电话
+  customerService: {
+    title: '客服服务详情',
+    titleIcon: 'ChatDotRound',
+    displayType: 'table',
+    minWidth: '350px',
+    fields: [
+      { key: 'communityName', label: '小区名称', highlight: true },
+      { key: 'address', label: '地址' },
+      { key: 'user', label: '用户' },
+      { key: 'contactNumber', label: '联系电话' }
+    ],
+    actions: [
+      { key: 'viewDetail', label: '查看详情', type: 'primary' }
+    ]
+  },
+
 }
 
 // 在显示弹窗时根据数据类型选择配置
@@ -1648,7 +1743,8 @@ const showOfficialInfoPopup = async (officialInfo: any, coordinates: any, dataTy
   try {
     // 根据数据类型获取配置
     const config = popupConfigs[dataType] || popupConfigs.pipeline
-    console.log(config)
+    console.log(dataType, config)
+
     // 创建弹窗容器
     const popupElement = document.createElement('div')
     popupElement.className = 'ol-popup dynamic-popup-container'
@@ -1669,7 +1765,7 @@ const showOfficialInfoPopup = async (officialInfo: any, coordinates: any, dataTy
     const popupContent = document.createElement('div')
     popupContent.className = 'popup-content'
     popupContent.style.cssText = `
-      max-height: 500px;
+      max-height: 600px;
       overflow: hidden;
     `
 
@@ -1700,22 +1796,66 @@ const showOfficialInfoPopup = async (officialInfo: any, coordinates: any, dataTy
     }
 
     // 使用 Vue 渲染组件内容
-    const { createApp } = await import('vue')
+    const { createApp, h } = await import('vue')
+    const { ElImage, ElIcon } = await import('element-plus')
+    const { Picture } = await import('@element-plus/icons-vue')
+
+    // 定义 slots 渲染函数
+    const slots = {
+      photos: ({ value, row }: { value: any; row: any }) => {
+        return h('div', { class: 'photo-gallery' }, [
+          value && value.length > 0
+            ? h('div', { class: 'photo-list' },
+              value.map((photo: string, index: number) =>
+                h(ElImage, {
+                  src: photo,
+                  previewSrcList: value,
+                  initialIndex: index,
+                  fit: 'cover',
+                  class: 'photo-item',
+                  alt: `现场照片 ${index + 1}`,
+                  style: { width: '80px', height: '80px' }
+                }, {
+                  error: () => h('div', { class: 'image-error' }, [
+                    h(ElIcon, { class: 'el-icon--left' }, () => h(Picture)),
+                    h('span', '图片加载失败')
+                  ])
+                })
+              )
+            )
+            : h('div', { class: 'no-photos' }, [
+              h(ElIcon, { class: 'el-icon--left' }, () => h(Picture)),
+              h('span', '暂无照片')
+            ])
+        ])
+      },
+      status: ({ value, row }: { value: any; row: any }) => {
+        // 状态标签的渲染函数
+        return h('el-tag', {
+          type: value === '正常' ? 'success' : 'danger',
+          size: 'small'
+        }, value)
+      }
+    }
 
     // 创建 Vue 应用
     const app = createApp(DynamicPopup, {
       rowData: officialInfo,
       config: config,
       themeColors: gasBlueTheme,
+      slots: slots, // 传递 slots
       onClose: () => {
         removeDevicePopup(popupId)
       },
       onAction: (action: any, rowData: any) => {
         console.log('执行操作:', action.key, rowData)
-        // 处理不同的操作
         handlePopupAction(action.key, rowData)
       }
     })
+
+    // 注册 Element Plus 组件
+    app.use(ElImage)
+    app.use(ElIcon)
 
     // 挂载到弹窗内容容器
     app.mount(popupContent)
@@ -2708,5 +2848,65 @@ const getTagType = (type: string) => {
   .legend-panel {
     left: 20px;
   }
+}
+
+/* 在主页组件的 style 中添加 */
+.photo-gallery {
+  width: 100%;
+}
+
+.photo-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.photo-item {
+  width: 80px;
+  height: 80px;
+  border-radius: 6px;
+  overflow: hidden;
+  cursor: pointer;
+  border: 1px solid #e5e7eb;
+  transition: all 0.3s ease;
+}
+
+.photo-item:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.image-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background: #f5f7fa;
+  color: #909399;
+  font-size: 12px;
+}
+
+.image-error .el-icon {
+  font-size: 24px;
+  margin-bottom: 4px;
+}
+
+.no-photos {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  color: #909399;
+  background: #f5f7fa;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.no-photos .el-icon {
+  margin-right: 8px;
+  font-size: 16px;
 }
 </style>
