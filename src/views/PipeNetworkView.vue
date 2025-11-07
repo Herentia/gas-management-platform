@@ -990,7 +990,146 @@ const equipmentInspectionColumns = ref([
 ])
 
 // 服务应急抢险
-// 序号、服务应急抢险编号、应急抢险位置、
+// 序号、服务应急抢险编号、应急抢险位置、停气碰口位置、管阀阀井位置、影响区域、备注
+const emergencyColumns = ref([
+  { prop: 'id', label: '序号', width: 80 },
+  { prop: 'emergencyNo', label: '应急抢险编号', minWidth: 160 },
+  { prop: 'location', label: '应急抢险位置', minWidth: 180 },
+  { prop: 'shutoffLocation', label: '停气碰口位置', minWidth: 180 },
+  { prop: 'pipeValvePosition', label: '管阀阀井位置', minWidth: 160 },
+  { prop: 'impactArea', label: '影响区域', minWidth: 140 },
+  { prop: 'remarks', label: '备注', minWidth: 200 },
+])
+
+// 工程建设管理
+// 序号、工程名称、工程编号、施工单位、工地地址、工地负责人、联系电话、最后看护时间、现状照片、任务分派、备注
+const constructionColumns = ref([
+  { prop: 'id', label: '序号', width: 80 },
+  { prop: 'projectName', label: '工程名称', minWidth: 150 },
+  { prop: 'projectNo', label: '工程编号', minWidth: 120 },
+  { prop: 'constructionUnit', label: '施工单位', minWidth: 150 },
+  { prop: 'siteAddress', label: '工地地址', minWidth: 200 },
+  { prop: 'siteManager', label: '工地负责人', minWidth: 120 },
+  { prop: 'contactNumber', label: '联系电话', minWidth: 140 },
+  { prop: 'lastInspectionTime', label: '最后看护时间', width: 160 },
+  { prop: 'currentPhotos', label: '现状照片', minWidth: 200, slot: 'photos' },
+  { prop: 'taskAssignment', label: '任务分派', minWidth: 150 },
+  { prop: 'remarks', label: '备注', minWidth: 200 },
+])
+
+const constructionData = ref([
+  {
+    id: 'C001',
+    projectName: '朝阳区建国路燃气管道改造',
+    projectNo: 'GC-20241101-001',
+    constructionUnit: '北京燃气建设有限公司',
+    siteAddress: '北京市朝阳区建国路88号',
+    siteManager: '李四',
+    contactNumber: '13800138000',
+    lastInspectionTime: '2025-11-05 15:30:00',
+    currentPhotos: [
+      'https://example.com/photo1.jpg',
+      'https://example.com/photo2.jpg'
+    ],
+    taskAssignment: '张三负责现场监护，王五负责安全检查',
+    remarks: '施工期间注意交通安全，确保燃气供应不中断',
+    data: {
+      coordinates: [116.4074, 39.9193],
+      officialInfo: {
+        projectName: '朝阳区建国路燃气管道改造',
+        projectNo: 'GC-20241101-001',
+        constructionUnit: '北京燃气建设有限公司',
+        siteAddress: '北京市朝阳区建国路88号',
+        siteManager: '李四',
+        contactNumber: '13800138000',
+        lastInspectionTime: '2025-11-05 15:30:00',
+        taskAssignment: '张三负责现场监护，王五负责安全检查',
+        currentPhotos: [
+          'https://example.com/photo1.jpg',
+          'https://example.com/photo2.jpg'
+        ],
+      }
+    }
+  },
+  {
+    id: 'C002',
+    projectName: '海淀区中关村燃气管道维护',
+    projectNo: 'GC-20251101-002',
+    constructionUnit: '北京燃气维护有限公司',
+    siteAddress: '北京市海淀区中关村大街27号',
+    siteManager: '王五',
+    contactNumber: '13900139000',
+    lastInspectionTime: '2025-11-06 10:20:00',
+    currentPhotos: [
+      'https://example.com/photo3.jpg',
+      'https://example.com/photo4.jpg'
+    ],
+    taskAssignment: '赵六负责现场监护，钱七负责安全检查',
+    remarks: '维护期间注意周边环境保护，防止二次污染',
+    data: {
+      coordinates: [116.4024, 39.9143],
+      officialInfo: {
+        projectName: '海淀区中关村燃气管道维护',
+        projectNo: 'GC-20251101-002',
+        constructionUnit: '北京燃气维护有限公司',
+        siteAddress: '北京市海淀区中关村大街27号',
+        siteManager: '王五',
+        contactNumber: '13900139000',
+        lastInspectionTime: '2025-11-06 10:20:00',
+        taskAssignment: '赵六负责现场监护，钱七负责安全检查',
+        currentPhotos: [
+          'https://example.com/photo3.jpg',
+          'https://example.com/photo4.jpg'
+        ],
+      }
+    }
+  }
+])
+
+const emergencyData = ref([
+  {
+    id: 'E001',
+    emergencyNo: 'EQ-20241101-001',
+    location: '朝阳区建国路与光华路交叉口北侧',
+    shutoffLocation: '建国路西侧 DN150 停气碰口',
+    pipeValvePosition: '阀井-VN-102（距路口50m）',
+    impactArea: '周边居民楼 3 栋，商业区若干',
+    status: '处理中',
+    remarks: '现场人员已到达，正在处置',
+    updateTime: '2025-11-07 09:12:00',
+    data: {
+      coordinates: [116.4074, 39.9193],
+      officialInfo: {
+        reporter: '调度中心',
+        reportedAt: '2025-11-07 08:50:00',
+        severity: '中',
+        suggestedAction: '关闭阀门并临时供气方案',
+        photos: []
+      }
+    }
+  },
+  {
+    id: 'E002',
+    emergencyNo: 'EQ-20251101-002',
+    location: '海淀区中关村大街27号北侧',
+    shutoffLocation: '沟渠侧 DN100 停气点',
+    pipeValvePosition: '阀井-FM-210（路南10m）',
+    impactArea: '影响学校与周边小区',
+    status: '已完成',
+    remarks: '抢修完成，已恢复供气',
+    updateTime: '2025-11-06 18:45:00',
+    data: {
+      coordinates: [116.4024, 39.9143],
+      details: {
+        reporter: '现场队',
+        reportedAt: '2025-11-06 16:20:00',
+        severity: '高',
+        suggestedAction: '临时切换供气、修复破损段',
+        photos: []
+      }
+    }
+  }
+])
 
 // 表格数据   巡检数据
 const inspectionData = ref([
@@ -1325,9 +1464,18 @@ const handleEngineeringMenu = (menuKey: string) => {
   switch (menuKey) {
     case '/engineering/emergency':
       // 显示应急抢险面板
+      bottomTableTitle.value = '服务应急抢险列表'
+      showBottomPanel.value = !showBottomPanel.value
+      tableColumns.value = emergencyColumns.value
+      tableData.value = emergencyData.value
       break
     case '/engineering/engineeringManagement':
       // 显示工程进度面板
+      bottomTableTitle.value = '工程建设管理列表'
+      showBottomPanel.value = !showBottomPanel.value
+      tableColumns.value = constructionColumns.value
+      tableData.value = constructionData.value
+      popupType.value = 'construction'
       break
   }
 }
@@ -1466,7 +1614,31 @@ const popupConfigs: any = {
     //   { key: 'handle', label: '立即处理', type: 'danger' },
     //   { key: 'ignore', label: '忽略', type: 'info' }
     // ]
-  }
+  },
+
+  // 服务应急抢险弹窗配置
+
+  // 工程建设管理弹窗配置
+  construction: {
+    title: '工程建设详情',
+    titleIcon: 'Construction',
+    displayType: 'table',
+    minWidth: '400px',
+    fields: [
+      { key: 'projectName', label: '工程名称', highlight: true },
+      { key: 'projectNo', label: '工程编号' },
+      { key: 'constructionUnit', label: '施工单位' },
+      { key: 'siteAddress', label: '工地地址' },
+      { key: 'siteManager', label: '工地负责人' },
+      { key: 'contactNumber', label: '联系电话' },
+      { key: 'lastInspectionTime', label: '最后看护时间' },
+      { key: 'taskAssignment', label: '任务分派' },
+      { key: 'currentPhotos', label: '现状照片' }
+    ],
+    actions: [
+      { key: 'viewDetail', label: '查看详情', type: 'primary' }
+    ]
+  },
 }
 
 // 在显示弹窗时根据数据类型选择配置
@@ -1476,7 +1648,7 @@ const showOfficialInfoPopup = async (officialInfo: any, coordinates: any, dataTy
   try {
     // 根据数据类型获取配置
     const config = popupConfigs[dataType] || popupConfigs.pipeline
-
+    console.log(config)
     // 创建弹窗容器
     const popupElement = document.createElement('div')
     popupElement.className = 'ol-popup dynamic-popup-container'

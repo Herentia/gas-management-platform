@@ -300,7 +300,7 @@ const allMenuItems = {
     {
       id: 2,
       title: '工程建设管理',
-      path: '/engineering/engineeringManagement‌',
+      path: '/engineering/engineeringManagement',
       icon: markRaw(DataBoard),
       children: []
     },
