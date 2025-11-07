@@ -177,7 +177,7 @@ const userInfo = ref<UserInfo>({
 })
 
 // 所有菜单配置 - 包含一级菜单和子菜单
-const allMenuItems = {
+const allMenuItems: Record<string, MenuItem[]> = {
   // 管网管理菜单
   'pipe-network': [
     // {
@@ -312,6 +312,7 @@ const allMenuItems = {
       title: '客户服务管理',
       path: '/customer/service',
       icon: markRaw(UserFilled),
+      children: []
     },
   ]
 }
