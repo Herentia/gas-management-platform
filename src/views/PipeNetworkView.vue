@@ -142,7 +142,7 @@ import { Vector as VectorLayer } from 'ol/layer'
 import { Vector as VectorSource } from 'ol/source'
 import { Feature } from 'ol'
 import { Point, LineString } from 'ol/geom'
-import { Style, Stroke, Circle, Fill } from 'ol/style'
+import { Style, Stroke, Circle, Fill, Text as OlText } from 'ol/style'
 
 // 原有导入保持不变
 import TreeStructure from '@/components/map/TreeStructure.vue'
@@ -2306,14 +2306,333 @@ const toggleLayersPanel = () => {
   showLayersPanel.value = !showLayersPanel.value
 }
 
+// 处理点数据并添加到地图
+const addPointDataToMap = (pointData: any[]) => {
+  if (!map || !vectorLayer) return
+
+  const source = vectorLayer.getSource()
+  if (!source) return
+
+  // 过滤掉没有几何数据的点
+  const validPoints = pointData.filter(point => point.geom && Array.isArray(point.geom) && point.geom.length === 2)
+
+  validPoints.forEach(point => {
+    const feature = new Feature({
+      geometry: new Point(fromLonLat(point.geom)),
+      id: point.id,
+      type: 'point',
+      note: point.note,
+      layer: point.layer,
+      status: point.st,
+      originalData: point // 保存原始数据
+    })
+
+    // 设置点样式
+    feature.setStyle(createPointStyle(point))
+
+    source.addFeature(feature)
+  })
+
+  console.log(`成功添加 ${validPoints.length} 个点要素`)
+}
+
+// 处理线数据并添加到地图
+const addLineDataToMap = (lineData: any[]) => {
+  if (!map || !vectorLayer) return
+
+  const source = vectorLayer.getSource()
+  if (!source) return
+
+  // 过滤掉没有几何数据的线
+  const validLines = lineData.filter(line =>
+    line.geom &&
+    Array.isArray(line.geom) &&
+    line.geom.length >= 2 && // 至少两个点才能构成线
+    line.geom.every((coord: any) => Array.isArray(coord) && coord.length === 2)
+  )
+
+  validLines.forEach(line => {
+    // 将坐标转换为地图坐标
+    const coordinates = line.geom.map((coord: number[]) => fromLonLat(coord))
+
+    const feature = new Feature({
+      geometry: new LineString(coordinates),
+      id: line.id,
+      type: 'line',
+      note: line.note,
+      layer: line.layer,
+      status: line.st,
+      width: line.w,
+      originalData: line // 保存原始数据
+    })
+
+    // 设置线样式
+    feature.setStyle(createLineStyle(line))
+
+    source.addFeature(feature)
+  })
+
+  console.log(`成功添加 ${validLines.length} 个线要素`)
+}
+
+// 创建点样式
+const createPointStyle = (pointData: any) => {
+  // 根据点数据的不同属性设置不同样式
+  let color = '#165DFF' // 默认蓝色
+  let radius = 6
+
+  // 根据状态设置颜色
+  if (pointData.st === 1) {
+    color = '#00B42A' // 正常状态 - 绿色
+  } else if (pointData.st === 0) {
+    color = '#F53F3F' // 异常状态 - 红色
+  }
+
+  // 根据图层设置不同样式
+  switch (pointData.layer) {
+    case 1:
+      radius = 8
+      break
+    case 2:
+      radius = 6
+      color = '#FF7D00' // 橙色
+      break
+    default:
+      radius = 6
+  }
+
+  return new Style({
+    image: new Circle({
+      radius: radius,
+      fill: new Fill({ color: color }),
+      stroke: new Stroke({
+        color: '#fff',
+        width: 2
+      })
+    }),
+    text: new OlText({
+      text: pointData.note || `点${pointData.id}`,
+      offsetY: -15,
+      font: '12px Microsoft YaHei',
+      fill: new Fill({ color: '#333' }),
+      stroke: new Stroke({ color: '#fff', width: 2 })
+    })
+  })
+}
+
+// 创建线样式
+const createLineStyle = (lineData: any) => {
+  // 根据线数据的不同属性设置不同样式
+  let color = '#1E6FBA' // 默认蓝色
+  let width = 3
+
+  // 根据状态设置颜色
+  if (lineData.st === 1) {
+    color = '#00B42A' // 正常状态 - 绿色
+  } else if (lineData.st === 0) {
+    color = '#F53F3F' // 异常状态 - 红色
+  }
+
+  // 根据宽度属性设置线宽
+  if (lineData.w) {
+    width = Math.max(2, Math.min(8, lineData.w * 2)) // 根据数据中的宽度值调整
+  }
+
+  // 根据图层设置不同样式
+  switch (lineData.layer) {
+    case 1:
+      color = '#1E6FBA' // 主干管网 - 蓝色
+      width = 4
+      break
+    case 2:
+      color = '#FF7D00' // 支线管网 - 橙色
+      width = 3
+      break
+    case 3:
+      color = '#00B42A' // 庭院管网 - 绿色
+      width = 2
+      break
+  }
+
+  return new Style({
+    stroke: new Stroke({
+      color: color,
+      width: width,
+      lineCap: 'round',
+      lineJoin: 'round'
+    })
+  })
+}
+
+// 清空现有矢量数据
+const clearVectorData = () => {
+  if (!vectorLayer) return
+
+  const source = vectorLayer.getSource()
+  if (source) {
+    source.clear()
+    console.log('已清空矢量数据')
+  }
+}
+
+// 更新地图显示范围以适应所有要素
+const fitMapToFeatures = () => {
+  if (!map || !vectorLayer) return
+
+  const source = vectorLayer.getSource()
+  if (!source) return
+
+  const features = source.getFeatures()
+  if (features.length === 0) return
+
+  // 获取所有要素的边界范围
+  const extent = source.getExtent()
+  if (extent && extent[0] !== Infinity) {
+    map.getView().fit(extent, {
+      padding: [50, 50, 50, 50],
+      duration: 500
+    })
+    console.log('地图已调整到适合所有要素的显示范围')
+  }
+}
+
+// 添加要素点击事件
+const setupFeatureInteraction = () => {
+  console.log(map)
+  if (!map) return
+
+  map.on('click', (event) => {
+    if (!vectorLayer) return
+
+    const feature = map.forEachFeatureAtPixel(event.pixel, (feature) => feature)
+
+    if (feature) {
+      const featureType = feature.get('type')
+      const originalData = feature.get('originalData')
+
+      console.log('点击要素:', featureType, originalData)
+
+      // 根据要素类型显示不同信息
+      if (featureType === 'point') {
+        showPointDetail(originalData, feature.getGeometry() as Point)
+      } else if (featureType === 'line') {
+        showLineDetail(originalData, feature.getGeometry() as LineString)
+      }
+    }
+  })
+
+  // 修改鼠标样式
+  map.on('pointermove', (event) => {
+    if (!vectorLayer) return
+
+    const pixel = map.getEventPixel(event.originalEvent)
+    const hit = map.hasFeatureAtPixel(pixel)
+
+    map.getTargetElement().style.cursor = hit ? 'pointer' : ''
+  })
+}
+
+// 显示点详情
+const showPointDetail = async (pointData: any, geometry: Point) => {
+  const coordinates = toLonLat(geometry.getCoordinates())
+  const pointId = `point_${pointData.id}`
+
+  // 创建点数据详情
+  const detailData = {
+    id: pointData.id,
+    name: pointData.note || `点${pointData.id}`,
+    type: '监测点',
+    status: pointData.st === 1 ? '正常' : '异常',
+    location: `${coordinates[0].toFixed(6)}, ${coordinates[1].toFixed(6)}`,
+    layer: getLayerName(pointData.layer),
+    updateTime: new Date().toLocaleString('zh-CN'),
+    ...pointData
+  }
+
+  // 创建图表数据（示例）
+  const chartData = {
+    accumulated: Math.floor(Math.random() * 1000).toString(),
+    flowRate: (Math.random() * 100).toFixed(2),
+    temperature: Math.floor(Math.random() * 50).toString(),
+    pressure: (Math.random() * 10).toFixed(2),
+    temperatureData: Array(6).fill(0).map(() => Math.floor(Math.random() * 50)),
+    pressureData: Array(6).fill(0).map(() => (Math.random() * 10).toFixed(2))
+  }
+
+  // 创建设备弹窗
+  await createDevicePopup(pointId, detailData, chartData, coordinates)
+}
+
+// 显示线详情
+const showLineDetail = async (lineData: any, geometry: LineString) => {
+  const coordinates = geometry.getCoordinates().map(coord => toLonLat(coord))
+  const lineId = `line_${lineData.id}`
+
+  // 使用官方信息弹窗显示线数据
+  const officialInfo = {
+    name: lineData.note || `管线${lineData.id}`,
+    material: '未知材质', // 根据实际数据结构调整
+    years: '未知年限',
+    pressureLevel: '未知压力等级',
+    anticorrosion: '未知防腐',
+    diameter: `DN${lineData.w * 100 || '未知'}`,
+    other: lineData.att ? JSON.stringify(lineData.att) : '无',
+    length: `${(lineData.geom.length * 100).toFixed(2)}米` // 估算长度
+  }
+
+  await showOfficialInfoPopup(officialInfo, coordinates, 'pipeline')
+}
+
+// 获取图层名称
+const getLayerName = (layerId: number): string => {
+  const layerMap: Record<number, string> = {
+    1: '主干管网',
+    2: '支线管网',
+    3: '庭院管网',
+    4: '设备层'
+  }
+  return layerMap[layerId] || `图层${layerId}`
+}
+
+
+
+const pntData = ref<any[]>([])
+const linData = ref<any[]>([])
 // 生命周期
 onMounted(() => {
-  apiModules.user.hello().then(response => {
-    console.log('API调用成功，响应数据:', response)
-  }).catch(error => {
-    console.error('API调用失败，错误信息:', error)
-  })
   initMap()
+
+  // 获取点线数据
+  const minLng = 109.20
+  const minLat = 36.602
+  const maxLng = 109.49
+  const maxLat = 36.603
+
+  Promise.all([
+    apiModules.zzrq.getPntByArea({ minLng, minLat, maxLng, maxLat }),
+    apiModules.zzrq.getLinByArea({ minLng, minLat, maxLng, maxLat })
+  ]).then((res: any) => {
+    pntData.value = res[0]
+    linData.value = res[1]
+    console.log('点数据:', pntData.value)
+    console.log('线数据:', linData.value)
+
+    // 清空示例数据，添加实际数据
+    clearVectorData()
+    addPointDataToMap(pntData.value)
+    addLineDataToMap(linData.value)
+
+    // 调整地图显示范围
+    setTimeout(() => {
+      fitMapToFeatures()
+    }, 100)
+  }).catch(error => {
+    console.error('获取点线数据失败:', error)
+  })
+
+  // 设置要素交互
+  setupFeatureInteraction()
+
   // 监听窗口大小变化
   window.addEventListener('resize', handleResize)
 })
