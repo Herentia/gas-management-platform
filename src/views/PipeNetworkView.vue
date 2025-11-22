@@ -173,6 +173,8 @@ import { ta } from 'element-plus/es/locales.mjs'
 import DynamicPopup from '@/components/map/DynamicPopup.vue'
 import { add } from 'ol/coordinate'
 
+import { apiModules } from '@/api'; // 导入模块化的 api
+
 // 新增：获取路由参数
 const route = useRoute()
 const currentMenuType = ref('')
@@ -2306,6 +2308,11 @@ const toggleLayersPanel = () => {
 
 // 生命周期
 onMounted(() => {
+  apiModules.user.hello().then(response => {
+    console.log('API调用成功，响应数据:', response)
+  }).catch(error => {
+    console.error('API调用失败，错误信息:', error)
+  })
   initMap()
   // 监听窗口大小变化
   window.addEventListener('resize', handleResize)

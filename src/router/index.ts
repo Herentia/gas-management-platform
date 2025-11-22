@@ -4,6 +4,7 @@ import PipeNetworkView from '@/views/PipeNetworkView.vue'
 import InspectionView from '@/views/InspectionView.vue'
 import EngineeringView from '@/views/EngineeringView.vue'
 import CustomerServiceView from '@/views/CustomerServiceView.vue'
+import { useStorage } from '@vueuse/core'
 
 // 路由类型定义 - 添加索引签名
 export interface RouteMeta extends Record<string, unknown> {
@@ -189,12 +190,12 @@ router.afterEach((to, from) => {
   console.log(`Navigated to: ${to.name?.toString()}`)
 })
 
-// 认证检查函数（示例）
-function checkAuth(): boolean {
-  // 这里实现您的认证逻辑
-  const token = localStorage.getItem('auth_token')
-  return !!token
-}
+// // 认证检查函数（示例）
+// function checkAuth(): boolean {
+//   // 这里实现您的认证逻辑
+//   const token = useStorage('auth_token')
+//   return !!token
+// }
 
 // 导航辅助函数
 export function navigateTo(routeName: string, params?: Record<string, any>) {

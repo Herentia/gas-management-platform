@@ -4,7 +4,7 @@ import request from '@/utils/request'
 // 示例：获取数据
 export function fetchDemoData(params?: any) {
   return request({
-    url: '/test', // 实际请求 /api/test (由代理处理)
+    url: '/hello', // 实际请求 /api/test (由代理处理)
     method: 'GET',
     params: params, // GET 查询参数
   })

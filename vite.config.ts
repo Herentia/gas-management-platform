@@ -6,11 +6,11 @@ import tailwindcss from '@tailwindcss/vite'
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
-  // 加载环境变量
-  const env = loadEnv(mode, process.cwd(), '')
+  // 正确的加载环境变量方式
+  const env = loadEnv(mode, process.cwd(), 'VITE_')
 
   return {
-    plugins: [vue(), vueDevTools(), tailwindcss()],
+    plugins: [vue(), tailwindcss()],
     resolve: {
       alias: {
         '@': fileURLToPath(new URL('./src', import.meta.url)),
@@ -19,7 +19,7 @@ export default defineConfig(({ mode }) => {
     // 服务器代理配置
     server: {
       cors: true,
-      port: 8888,
+      port: 8889, // 开发服务器端口
       open: false, // 是否自动打开浏览器
       proxy: {
         // 代理以 '/api' 开头的请求
