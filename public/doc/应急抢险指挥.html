@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>应急抢险指挥系统</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+  <!-- 地图资源 -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  
+  <!-- Tailwind 配置 -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#E63946', // 应急红
+            secondary: '#1D3557', // 深蓝
+            tertiary: '#457B9D', // 浅蓝
+            light: '#F1FAEE', // 浅色背景
+            accent: '#A8DADC' // 强调色
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+          },
+        },
+      }
+    }
+  </script>
+  
+  <style type="text/tailwindcss">
+    @layer utilities {
+      .content-auto {
+        content-visibility: auto;
+      }
+      .scrollbar-thin {
+        scrollbar-width: thin;
+      }
+      .scrollbar-thin::-webkit-scrollbar {
+        width: 4px;
+      }
+      .scrollbar-thin::-webkit-scrollbar-thumb {
+        background-color: rgba(156, 163, 175, 0.5);
+        border-radius: 2px;
+      }
+      .map-container {
+        height: calc(100vh - 4rem);
+      }
+      .panel-height {
+        height: calc(100vh - 4rem);
+      }
+      .pulse-animation {
+        animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+      }
+      @keyframes pulse {
+        0%, 100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
+      }
+    }
+  </style>
+</head>
+
+<body class="font-sans bg-gray-50 text-gray-800 overflow-hidden">
+  <!-- 顶部导航栏 -->
+  <header class="bg-white shadow-md h-16 flex items-center justify-between px-6 z-10">
+    <div class="flex items-center space-x-3">
+      <div class="text-primary text-2xl pulse-animation">
+        <i class="fa fa-ambulance"></i>
+      </div>
+      <h1 class="text-xl font-bold text-primary">应急抢险指挥系统</h1>
+    </div>
+    
+    <div class="flex items-center space-x-6">
+      <div class="relative">
+        <button class="text-gray-600 hover:text-primary transition-colors">
+          <i class="fa fa-bell text-xl"></i>
+          <span class="absolute -top-1 -right-1 w-4 h-4 bg-primary text-white text-xs rounded-full flex items-center justify-center">3</span>
+        </button>
+      </div>
+      <button class="text-gray-600 hover:text-primary transition-colors">
+        <i class="fa fa-cog text-xl"></i>
+      </button>
+      <div class="flex items-center space-x-2">
+        <img src="https://picsum.photos/id/1005/40/40" alt="指挥人员头像" class="w-8 h-8 rounded-full object-cover border-2 border-primary">
+        <span class="font-medium">指挥长</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="flex h-[calc(100vh-4rem)]">
+    <!-- 左侧应急操作面板 -->
+    <div class="w-80 bg-white shadow-lg z-10 overflow-y-auto panel-height scrollbar-thin">
+      <div class="p-5 border-b border-gray-200">
+        <h2 class="text-lg font-semibold mb-4 flex items-center">
+          <i class="fa fa-map-marker text-primary mr-2"></i>漏点定位
+        </h2>
+        <form id="leakLocationForm" class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-600 mb-1">定位方式</label>
+            <div class="flex space-x-2">
+              <label class="inline-flex items-center">
+                <input type="radio" name="locationType" value="manual" checked class="w-4 h-4 text-primary">
+                <span class="ml-2 text-sm">手动输入</span>
+              </label>
+              <label class="inline-flex items-center">
+                <input type="radio" name="locationType" value="gps" class="w-4 h-4 text-primary">
+                <span class="ml-2 text-sm">GPS获取</span>
+              </label>
+            </div>
+          </div>
+          
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label for="leakLatitude" class="block text-sm font-medium text-gray-600 mb-1">纬度</label>
+              <input type="number" id="leakLatitude" step="0.000001" placeholder="例如: 39.9087" 
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary">
+            </div>
+            <div>
+              <label for="leakLongitude" class="block text-sm font-medium text-gray-600 mb-1">经度</label>
+              <input type="number" id="leakLongitude" step="0.000001" placeholder="例如: 116.3975"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary">
+            </div>
+          </div>
+          
+          <div>
+            <label for="leakDescription" class="block text-sm font-medium text-gray-600 mb-1">漏点描述</label>
+            <textarea id="leakDescription" rows="2" placeholder="例如: 主管道破裂，泄漏严重..."
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"></textarea>
+          </div>
+          
+          <button type="button" id="locateLeakBtn" class="w-full bg-primary hover:bg-primary/90 text-white py-2 px-4 rounded-md transition-colors flex items-center justify-center">
+            <i class="fa fa-search mr-2"></i> 定位漏点
+          </button>
+        </form>
+      </div>
+      
+      <div class="p-5 border-b border-gray-200">
+        <h2 class="text-lg font-semibold mb-4 flex items-center">
+          <i class="fa fa-exclamation-triangle text-primary mr-2"></i>影响分析
+        </h2>
+        
+        <button id="analyzeImpactBtn" class="w-full bg-secondary hover:bg-secondary/90 text-white py-2 px-4 rounded-md transition-colors flex items-center justify-center mb-4">
+          <i class="fa fa-calculator mr-2"></i> 分析影响区域
+        </button>
+        
+        <div id="impactAnalysisResult" class="hidden space-y-3">
+          <div class="bg-light p-3 rounded-md">
+            <div class="flex justify-between items-center mb-2">
+              <span class="text-sm font-medium">受影响用户</span>
+              <span class="text-lg font-bold text-primary">2,356 户</span>
+            </div>
+            <div class="flex justify-between items-center mb-2">
+              <span class="text-sm font-medium">影响区域</span>
+              <span class="text-sm">约 1.2 平方公里</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-sm font-medium">需关闭阀门</span>
+              <span class="text-sm font-semibold">3 个</span>
+            </div>
+          </div>
+          
+          <div>
+            <h3 class="text-sm font-medium text-gray-700 mb-2">需关闭的阀门</h3>
+            <div class="space-y-2 max-h-40 overflow-y-auto scrollbar-thin">
+              <div class="flex items-center p-2 bg-gray-50 rounded border border-gray-200">
+                <div class="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs mr-2">1</div>
+                <div class="flex-1">
+                  <p class="text-sm font-medium">V-12345 (主阀门)</p>
+                  <p class="text-xs text-gray-500">距离漏点 350m</p>
+                </div>
+                <button class="text-tertiary hover:text-secondary">
+                  <i class="fa fa-location-arrow"></i>
+                </button>
+              </div>
+              
+              <div class="flex items-center p-2 bg-gray-50 rounded border border-gray-200">
+                <div class="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs mr-2">2</div>
+                <div class="flex-1">
+                  <p class="text-sm font-medium">V-12346 (分支阀门)</p>
+                  <p class="text-xs text-gray-500">距离漏点 280m</p>
+                </div>
+                <button class="text-tertiary hover:text-secondary">
+                  <i class="fa fa-location-arrow"></i>
+                </button>
+              </div>
+              
+              <div class="flex items-center p-2 bg-gray-50 rounded border border-gray-200">
+                <div class="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs mr-2">3</div>
+                <div class="flex-1">
+                  <p class="text-sm font-medium">V-12347 (区域阀门)</p>
+                  <p class="text-xs text-gray-500">距离漏点 420m</p>
+                </div>
+                <button class="text-tertiary hover:text-secondary">
+                  <i class="fa fa-location-arrow"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <button id="generateWarningBtn" class="w-full bg-tertiary hover:bg-tertiary/90 text-white py-2 px-4 rounded-md transition-colors flex items-center justify-center">
+            <i class="fa fa-bullhorn mr-2"></i> 生成预警信息
+          </button>
+        </div>
+      </div>
+      
+      <div class="p-5">
+        <h2 class="text-lg font-semibold mb-4 flex items-center">
+          <i class="fa fa-history text-primary mr-2"></i>抢险记录
+        </h2>
+        <div class="space-y-3 max-h-64 overflow-y-auto scrollbar-thin">
+          <div class="bg-light p-3 rounded-md border border-gray-200">
+            <div class="flex justify-between items-start">
+              <span class="font-medium text-sm">管道泄漏抢险</span>
+              <span class="text-xs text-gray-500">今天 09:23</span>
+            </div>
+            <p class="text-xs text-gray-600 mt-1">地点: 建国路与长安街交叉口</p>
+            <p class="text-xs text-gray-600">状态: <span class="text-green-600">已处理</span></p>
+          </div>
+          
+          <div class="bg-light p-3 rounded-md border border-gray-200">
+            <div class="flex justify-between items-start">
+              <span class="font-medium text-sm">阀门故障处理</span>
+              <span class="text-xs text-gray-500">昨天 16:45</span>
+            </div>
+            <p class="text-xs text-gray-600 mt-1">地点: 西城区平安大街</p>
+            <p class="text-xs text-gray-600">状态: <span class="text-green-600">已处理</span></p>
+          </div>
+          
+          <div class="bg-light p-3 rounded-md border border-gray-200">
+            <div class="flex justify-between items-start">
+              <span class="font-medium text-sm">管线第三方破坏</span>
+              <span class="text-xs text-gray-500">2023-06-12</span>
+            </div>
+            <p class="text-xs text-gray-600 mt-1">地点: 朝阳区建国路</p>
+            <p class="text-xs text-gray-600">状态: <span class="text-green-600">已处理</span></p>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 中央地图区域 -->
+    <div class="flex-1 relative">
+      <div id="emergencyMap" class="w-full h-full map-container z-0"></div>
+      
+      <!-- 地图控制按钮 -->
+      <div class="absolute top-4 right-4 z-10 flex flex-col space-y-2">
+        <button id="mapZoomIn" class="bg-white p-2 rounded-md shadow-md hover:bg-gray-100 transition-colors">
+          <i class="fa fa-plus"></i>
+        </button>
+        <button id="mapZoomOut" class="bg-white p-2 rounded-md shadow-md hover:bg-gray-100 transition-colors">
+          <i class="fa fa-minus"></i>
+        </button>
+        <button id="mapCenter" class="bg-white p-2 rounded-md shadow-md hover:bg-gray-100 transition-colors">
+          <i class="fa fa-crosshairs"></i>
+        </button>
+        <button id="toggleLayers" class="bg-white p-2 rounded-md shadow-md hover:bg-gray-100 transition-colors">
+          <i class="fa fa-layers"></i>
+        </button>
+      </div>
+      
+      <!-- 抢险队伍状态 -->
+      <div class="absolute bottom-4 left-4 z-10 bg-white rounded-md shadow-md p-3 max-w-xs">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-sm font-medium">抢险队伍状态</span>
+          <span class="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">3支待命</span>
+        </div>
+        <div class="space-y-2">
+          <div class="flex items-center text-sm">
+            <div class="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
+            <span>抢险一队</span>
+            <span class="ml-auto text-xs text-gray-500">距离: 2.5km</span>
+          </div>
+          <div class="flex items-center text-sm">
+            <div class="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
+            <span>抢险二队</span>
+            <span class="ml-auto text-xs text-gray-500">距离: 4.3km</span>
+          </div>
+          <div class="flex items-center text-sm">
+            <div class="w-3 h-3 rounded-full bg-yellow-500 mr-2"></div>
+            <span>抢险三队</span>
+            <span class="ml-auto text-xs text-gray-500">距离: 7.8km</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 右侧信息推送面板 -->
+    <div id="infoPanel" class="w-80 bg-white shadow-lg z-10 overflow-y-auto panel-height scrollbar-thin">
+      <!-- 预警信息编辑面板 -->
+      <div id="warningPanel" class="p-5 border-b border-gray-200">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-lg font-semibold flex items-center">
+            <i class="fa fa-bullhorn text-primary mr-2"></i>预警信息编辑
+          </h2>
+          <button id="closeWarningPanel" class="text-gray-500 hover:text-primary">
+            <i class="fa fa-times"></i>
+          </button>
+        </div>
+        
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-600 mb-1">信息标题</label>
+            <input type="text" id="warningTitle" value="紧急通知：XX区域管道泄漏抢修" 
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary">
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-600 mb-1">紧急程度</label>
+            <select id="warningLevel" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary">
+              <option value="high" selected>最高级 - 严重泄漏</option>
+              <option value="medium">中级 - 轻微泄漏</option>
+              <option value="low">低级 - 潜在风险</option>
+            </select>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-600 mb-1">信息内容</label>
+            <textarea id="warningContent" rows="6" 
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary">紧急通知：
+
+位于XX路与XX街交叉口发生管道泄漏，我公司已紧急派出抢险队伍前往处理。
+
+受影响区域：XX路以东、XX街以南、XX大道以西、XX路以北区域
+
+预计抢修时间：6小时
+
+请相关区域用户关闭燃气阀门，保持通风，远离泄漏区域。给您带来不便，敬请谅解。
+
+抢险热线：95XXX</textarea>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-600 mb-1">推送渠道</label>
+            <div class="space-y-2">
+              <label class="flex items-center text-sm">
+                <input type="checkbox" checked class="w-4 h-4 text-primary">
+                <span class="ml-2">内部管理人员 (短信)</span>
+              </label>
+              <label class="flex items-center text-sm">
+                <input type="checkbox" checked class="w-4 h-4 text-primary">
+                <span class="ml-2">微信公众号</span>
+              </label>
+              <label class="flex items-center text-sm">
+                <input type="checkbox" class="w-4 h-4 text-primary">
+                <span class="ml-2">应急指挥群 (微信)</span>
+              </label>
+              <label class="flex items-center text-sm">
+                <input type="checkbox" checked class="w-4 h-4 text-primary">
+                <span class="ml-2">抢险队伍 (APP推送)</span>
+              </label>
+            </div>
+          </div>
+          
+          <div class="pt-2">
+            <button id="saveAsDraftBtn" class="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 px-4 rounded-md transition-colors mb-2">
+              保存为草稿
+            </button>
+            
+            <div class="flex space-x-2">
+              <button id="sendDirectlyBtn" class="flex-1 bg-primary hover:bg-primary/90 text-white py-2 px-4 rounded-md transition-colors">
+                直接发送
+              </button>
+              <button id="forwardBtn" class="flex-1 bg-secondary hover:bg-secondary/90 text-white py-2 px-4 rounded-md transition-colors">
+                转发审批
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 人员管理面板 -->
+      <div class="p-5">
+        <h2 class="text-lg font-semibold mb-4 flex items-center">
+          <i class="fa fa-users text-primary mr-2"></i>相关人员
+        </h2>
+        
+        <div class="mb-4">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-sm font-medium">内部管理人员</h3>
+            <span class="text-xs bg-gray-100 text-gray-800 px-2 py-0.5 rounded-full">8人</span>
+          </div>
+          
+          <div class="space-y-2 max-h-40 overflow-y-auto scrollbar-thin">
+            <div class="flex items-center p-2 bg-gray-50 rounded border border-gray-200">
+              <img src="https://picsum.photos/id/1012/32/32" alt="用户头像" class="w-7 h-7 rounded-full mr-2">
+              <div class="flex-1">
+                <p class="text-sm font-medium">张经理</p>
+                <p class="text-xs text-gray-500">运营部主管</p>
+              </div>
+              <button class="text-tertiary hover:text-primary p-1">
+                <i class="fa fa-mobile text-lg"></i>
+              </button>
+            </div>
+            
+            <div class="flex items-center p-2 bg-gray-50 rounded border border-gray-200">
+              <img src="https://picsum.photos/id/1025/32/32" alt="用户头像" class="w-7 h-7 rounded-full mr-2">
+              <div class="flex-1">
+                <p class="text-sm font-medium">李工</p>
+                <p class="text-xs text-gray-500">技术部负责人</p>
+              </div>
+              <button class="text-tertiary hover:text-primary p-1">
+                <i class="fa fa-mobile text-lg"></i>
+              </button>
+            </div>
+            
+            <div class="flex items-center p-2 bg-gray-50 rounded border border-gray-200">
+              <img src="https://picsum.photos/id/1027/32/32" alt="用户头像" class="w-7 h-7 rounded-full mr-2">
+              <div class="flex-1">
+                <p class="text-sm font-medium">王主管</p>
+                <p class="text-xs text-gray-500">客服中心</p>
+              </div>
+              <button class="text-tertiary hover:text-primary p-1">
+                <i class="fa fa-mobile text-lg"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-sm font-medium">抢险队伍人员</h3>
+            <span class="text-xs bg-gray-100 text-gray-800 px-2 py-0.5 rounded-full">12人</span>
+          </div>
+          
+          <div class="space-y-2 max-h-40 overflow-y-auto scrollbar-thin">
+            <div class="flex items-center p-2 bg-gray-50 rounded border border-gray-200">
+              <img src="https://picsum.photos/id/1074/32/32" alt="用户头像" class="w-7 h-7 rounded-full mr-2">
+              <div class="flex-1">
+                <p class="text-sm font-medium">赵队长</p>
+                <p class="text-xs text-gray-500">抢险一队 · 待命</p>
+              </div>
+              <button class="text-tertiary hover:text-primary p-1">
+                <i class="fa fa-mobile text-lg"></i>
+              </button>
+            </div>
+            
+            <div class="flex items-center p-2 bg-gray-50 rounded border border-gray-200">
+              <img src="https://picsum.photos/id/1066/32/32" alt="用户头像" class="w-7 h-7 rounded-full mr-2">
+              <div class="flex-1">
+                <p class="text-sm font-medium">孙队员</p>
+                <p class="text-xs text-gray-500">抢险二队 · 待命</p>
+              </div>
+              <button class="text-tertiary hover:text-primary p-1">
+                <i class="fa fa-mobile text-lg"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 导航面板 -->
+  <div id="navigationPanel" class="fixed bottom-0 left-0 right-0 bg-white shadow-lg z-20 transform translate-y-full transition-transform duration-300 ease-in-out">
+    <div class="p-5">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-lg font-semibold flex items-center">
+          <i class="fa fa-map-signs text-primary mr-2"></i>导航至漏点
+        </h2>
+        <button id="closeNavigationPanel" class="text-gray-500 hover:text-primary">
+          <i class="fa fa-times"></i>
+        </button>
+      </div>
+      
+      <div class="grid grid-cols-3 gap-4 mb-4">
+        <div class="bg-light p-3 rounded-md text-center">
+          <p class="text-xs text-gray-500">距离</p>
+          <p class="text-lg font-bold">3.8 公里</p>
+        </div>
+        <div class="bg-light p-3 rounded-md text-center">
+          <p class="text-xs text-gray-500">预计时间</p>
+          <p class="text-lg font-bold">12 分钟</p>
+        </div>
+        <div class="bg-light p-3 rounded-md text-center">
+          <p class="text-xs text-gray-500">路线类型</p>
+          <p class="text-lg font-bold">最快路线</p>
+        </div>
+      </div>
+      
+      <div class="bg-light rounded-md p-3 mb-4">
+        <h3 class="text-sm font-medium mb-2">导航指引</h3>
+        <div class="space-y-3 max-h-40 overflow-y-auto scrollbar-thin">
+          <div class="flex">
+            <div class="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs mr-2">1</div>
+            <p class="text-sm">从当前位置出发，沿东三环向北行驶1.2公里</p>
+          </div>
+          <div class="flex">
+            <div class="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs mr-2">2</div>
+            <p class="text-sm">在建国门桥右转，进入建国路向东行驶800米</p>
+          </div>
+          <div class="flex">
+            <div class="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs mr-2">3</div>
+            <p class="text-sm">在光华路交叉口左转，行驶500米到达漏点附近</p>
+          </div>
+          <div class="flex">
+            <div class="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs mr-2">4</div>
+            <p class="text-sm">漏点位于道路北侧，已安排人员等候引导</p>
+          </div>
+        </div>
+      </div>
+      
+      <div class="flex space-x-3">
+        <button class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 px-4 rounded-md transition-colors">
+          <i class="fa fa-refresh mr-2"></i> 重新规划
+        </button>
+        <button class="flex-1 bg-secondary hover:bg-secondary/90 text-white py-2 px-4 rounded-md transition-colors">
+          <i class="fa fa-share-alt mr-2"></i> 分享路线
+        </button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 成功提示弹窗 -->
+  <div id="successModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6 transform transition-all">
+      <div class="text-center mb-4">
+        <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 text-green-500 mb-4">
+          <i class="fa fa-check text-2xl"></i>
+        </div>
+        <h3 class="text-xl font-bold">操作成功</h3>
+        <p class="text-gray-600 mt-2" id="modalMessage">预警信息已成功发送给相关人员</p>
+      </div>
+      
+      <div class="mt-6">
+        <button id="closeModal" class="w-full bg-primary hover:bg-primary/90 text-white py-2 px-4 rounded-md transition-colors">
+          确认
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 初始化地图
+    const map = L.map('emergencyMap').setView([39.9042, 116.4074], 13);
+    
+    // 添加地图图层
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+    
+    // 模拟管线数据
+    const pipelineData = [
+      [[39.91, 116.40], [39.92, 116.41], [39.93, 116.41]],
+      [[39.92, 116.41], [39.92, 116.42], [39.91, 116.43]],
+      [[39.91, 116.40], [39.90, 116.41], [39.89, 116.40]]
+    ];
+    
+    // 绘制管线
+    const pipelineLayer = L.layerGroup().addTo(map);
+    pipelineData.forEach(pipeline => {
+      L.polyline(pipeline, {
+        color: '#457B9D',
+        weight: 4,
+        opacity: 0.7
+      }).addTo(pipelineLayer);
+    });
+    
+    // 模拟阀门数据
+    const valveData = [
+      { id: 'V-12345', lat: 39.9087, lng: 116.3975, type: '主阀门' },
+      { id: 'V-12346', lat: 39.9150, lng: 116.4120, type: '分支阀门' },
+      { id: 'V-12347', lat: 39.8990, lng: 116.4050, type: '区域阀门' }
+    ];
+    
+    // 添加阀门标记
+    const valveLayer = L.layerGroup().addTo(map);
+    valveData.forEach(valve => {
+      const markerIcon = L.divIcon({
+        className: 'custom-div-icon',
+        html: `<div style="background-color: #1D3557; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 0 2px #1D3557;"></div>`,
+        iconSize: [18, 18],
+        iconAnchor: [9, 9]
+      });
+      
+      const marker = L.marker([valve.lat, valve.lng], { icon: markerIcon }).addTo(valveLayer);
+      marker.bindTooltip(`${valve.id} (${valve.type})`);
+      marker.valveData = valve;
+      
+      marker.on('click', function() {
+        // 点击阀门可查看详情或导航
+        showValveInfo(this.valveData);
+      });
+    });
+    
+    // 模拟用户分布数据
+    const userLayer = L.layerGroup().addTo(map);
+    for (let i = 0; i < 80; i++) {
+      const baseLat = 39.9087;
+      const baseLng = 116.3975;
+      const lat = baseLat + (Math.random() - 0.5) * 0.03;
+      const lng = baseLng + (Math.random() - 0.5) * 0.03;
+      L.circleMarker([lat, lng], {
+        radius: 2,
+        fillColor: '#6B7280',
+        fillOpacity: 0.6,
+        stroke: false
+      }).addTo(userLayer);
+    }
+    
+    // 抢险队伍位置
+    const teamLayer = L.layerGroup().addTo(map);
+    const teamData = [
+      { id: 1, name: '抢险一队', lat: 39.9120, lng: 116.4100, status: '待命' },
+      { id: 2, name: '抢险二队', lat: 39.9050, lng: 116.4200, status: '待命' },
+      { id: 3, name: '抢险三队', lat: 39.8980, lng: 116.3900, status: '待命' }
+    ];
+    
+    teamData.forEach(team => {
+      const color = team.status === '待命' ? '#10B981' : '#F59E0B';
+      const markerIcon = L.divIcon({
+        className: 'custom-div-icon',
+        html: `<div style="background-color: ${color}; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 0 2px ${color};"></div>`,
+        iconSize: [18, 18],
+        iconAnchor: [9, 9]
+      });
+      
+      const marker = L.marker([team.lat, team.lng], { icon: markerIcon }).addTo(teamLayer);
+      marker.bindTooltip(`${team.name} (${team.status})`);
+      marker.teamData = team;
+    });
+    
+    // 漏点标记和影响范围图层
+    let leakMarker;
+    let impactAreaLayer;
+    
+    // 地图控制
+    document.getElementById('mapZoomIn').addEventListener('click', () => {
+      map.zoomIn();
+    });
+    
+    document.getElementById('mapZoomOut').addEventListener('click', () => {
+      map.zoomOut();
+    });
+    
+    document.getElementById('mapCenter').addEventListener('click', () => {
+      map.setView([39.9042, 116.4074], 13);
+    });
+    
+    // 图层控制
+    let layersVisible = true;
+    document.getElementById('toggleLayers').addEventListener('click', () => {
+      layersVisible = !layersVisible;
+      if (layersVisible) {
+        map.addLayer(pipelineLayer);
+        map.addLayer(valveLayer);
+        map.addLayer(userLayer);
+        map.addLayer(teamLayer);
+        if (impactAreaLayer) map.addLayer(impactAreaLayer);
+      } else {
+        map.removeLayer(pipelineLayer);
+        map.removeLayer(valveLayer);
+        map.removeLayer(userLayer);
+        map.removeLayer(teamLayer);
+        if (impactAreaLayer) map.removeLayer(impactAreaLayer);
+      }
+    });
+    
+    // 定位漏点按钮事件
+    document.getElementById('locateLeakBtn').addEventListener('click', () => {
+      const lat = parseFloat(document.getElementById('leakLatitude').value);
+      const lng = parseFloat(document.getElementById('leakLongitude').value);
+      
+      if (isNaN(lat) || isNaN(lng)) {
+        alert('请输入有效的经纬度坐标');
+        return;
+      }
+      
+      // 移动地图到漏点位置
+      map.setView([lat, lng], 16);
+      
+      // 移除现有漏点标记
+      if (leakMarker) {
+        map.removeLayer(leakMarker);
+      }
+      
+      // 添加漏点标记（闪烁动画效果）
+      const leakIcon = L.divIcon({
+        className: 'custom-div-icon',
+        html: `<div class="pulse-animation" style="background-color: #E63946; width: 18px; height: 18px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 0 2px #E63946;"></div>`,
+        iconSize: [22, 22],
+        iconAnchor: [11, 11]
+      });
+      
+      leakMarker = L.marker([lat, lng], { icon: leakIcon }).addTo(map);
+      leakMarker.bindTooltip('管道漏点位置');
+      
+      // 自动触发影响分析
+      setTimeout(() => {
+        document.getElementById('analyzeImpactBtn').click();
+      }, 1000);
+    });
+    
+    // 分析影响区域按钮事件
+    document.getElementById('analyzeImpactBtn').addEventListener('click', () => {
+      // 如果没有漏点位置，提示先定位漏点
+      if (!leakMarker && (!document.getElementById('leakLatitude').value || !document.getElementById('leakLongitude').value)) {
+        alert('请先定位漏点位置');
+        return;
+      }
+      
+      // 模拟分析过程
+      document.getElementById('analyzeImpactBtn').innerHTML = '<i class="fa fa-spinner fa-spin mr-2"></i> 分析中...';
+      document.getElementById('analyzeImpactBtn').disabled = true;
+      
+      setTimeout(() => {
+        // 恢复按钮状态
+        document.getElementById('analyzeImpactBtn').innerHTML = '<i class="fa fa-calculator mr-2"></i> 分析影响区域';
+        document.getElementById('analyzeImpactBtn').disabled = false;
+        
+        // 显示分析结果
+        document.getElementById('impactAnalysisResult').classList.remove('hidden');
+        
+        // 获取漏点位置（如果没有手动添加的漏点，则使用第一个阀门位置作为演示）
+        let leakLat, leakLng;
+        if (leakMarker) {
+          const latlng = leakMarker.getLatLng();
+          leakLat = latlng.lat;
+          leakLng = latlng.lng;
+        } else {
+          leakLat = parseFloat(document.getElementById('leakLatitude').value) || valveData[0].lat;
+          leakLng = parseFloat(document.getElementById('leakLongitude').value) || valveData[0].lng;
+        }
+        
+        // 绘制影响范围
+        if (impactAreaLayer) {
+          map.removeLayer(impactAreaLayer);
+        }
+        
+        impactAreaLayer = L.circle([leakLat, leakLng], {
+          radius: 600, // 600米影响范围
+          color: '#E63946',
+          fillColor: '#E63946',
+          fillOpacity: 0.2,
+          weight: 2,
+          dashArray: '5, 5'
+        }).addTo(map);
+        
+        // 高亮显示需要关闭的阀门
+        valveData.slice(0, 3).forEach((valve, index) => {
+          const markerIcon = L.divIcon({
+            className: 'custom-div-icon',
+            html: `<div class="pulse-animation" style="background-color: #E63946; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 0 2px #E63946;"></div>`,
+            iconSize: [18, 18],
+            iconAnchor: [9, 9]
+          });
+          
+          // 更新阀门标记
+          const latlng = L.latLng(valve.lat, valve.lng);
+          valveLayer.eachLayer(layer => {
+            if (layer.valveData && layer.valveData.id === valve.id) {
+              layer.setIcon(markerIcon);
+            }
+          });
+        });
+        
+      }, 2000);
+    });
+    
+    // 生成预警信息按钮事件
+    document.getElementById('generateWarningBtn').addEventListener('click', () => {
+      document.getElementById('infoPanel').classList.remove('hidden');
+    });
+    
+    // 关闭预警面板
+    document.getElementById('closeWarningPanel').addEventListener('click', () => {
+      document.getElementById('infoPanel').classList.add('hidden');
+    });
+    
+    // 直接发送按钮事件
+    document.getElementById('sendDirectlyBtn').addEventListener('click', () => {
+      document.getElementById('modalMessage').textContent = '预警信息已成功发送给相关人员';
+      document.getElementById('successModal').classList.remove('hidden');
+    });
+    
+    // 转发审批按钮事件
+    document.getElementById('forwardBtn').addEventListener('click', () => {
+      document.getElementById('modalMessage').textContent = '预警信息已转发给管理人员审批';
+      document.getElementById('successModal').classList.remove('hidden');
+    });
+    
+    // 保存草稿按钮事件
+    document.getElementById('saveAsDraftBtn').addEventListener('click', () => {
+      document.getElementById('modalMessage').textContent = '预警信息已保存为草稿';
+      document.getElementById('successModal').classList.remove('hidden');
+    });
+    
+    // 关闭弹窗
+    document.getElementById('closeModal').addEventListener('click', () => {
+      document.getElementById('successModal').classList.add('hidden');
+    });
+    
+    // 显示阀门信息
+    function showValveInfo(valve) {
+      // 这里可以实现显示阀门详情的逻辑
+      // 简化处理，直接打开导航面板
+      document.getElementById('navigationPanel').classList.remove('translate-y-full');
+    }
+    
+    // 关闭导航面板
+    document.getElementById('closeNavigationPanel').addEventListener('click', () => {
+      document.getElementById('navigationPanel').classList.add('translate-y-full');
+    });
+    
+    // 阀门导航按钮事件
+    document.querySelectorAll('#impactAnalysisResult button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.getElementById('navigationPanel').classList.remove('translate-y-full');
+      });
+    });
+  </script>
+</body>
+</html>

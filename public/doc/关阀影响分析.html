@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>关阀影响分析系统</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+  <!-- 引入地图相关资源 -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  
+  <!-- 配置Tailwind -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#165DFF',
+            secondary: '#FF7D00',
+            success: '#00B42A',
+            warning: '#FF7D00',
+            danger: '#F53F3F',
+            dark: '#1D2129',
+            'dark-2': '#4E5969',
+            'light-1': '#F2F3F5',
+            'light-2': '#E5E6EB',
+            'light-3': '#C9CDD4'
+          },
+          fontFamily: {
+            inter: ['Inter', 'system-ui', 'sans-serif'],
+          },
+        },
+      }
+    }
+  </script>
+  
+  <style type="text/tailwindcss">
+    @layer utilities {
+      .content-auto {
+        content-visibility: auto;
+      }
+      .scrollbar-hide {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+      .scrollbar-hide::-webkit-scrollbar {
+        display: none;
+      }
+      .map-height {
+        height: calc(100vh - 4rem);
+      }
+      .panel-height {
+        height: calc(100vh - 4rem);
+      }
+      .control-panel-height {
+        max-height: calc(100vh - 4rem);
+      }
+      .animate-pulse-slow {
+        animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+      }
+    }
+  </style>
+</head>
+
+<body class="font-inter bg-gray-50 text-dark overflow-hidden">
+  <!-- 顶部导航栏 -->
+  <header class="bg-white shadow-md h-16 flex items-center justify-between px-6 z-10">
+    <div class="flex items-center space-x-3">
+      <div class="text-primary text-2xl">
+        <i class="fa fa-map-signs"></i>
+      </div>
+      <h1 class="text-xl font-bold text-primary">关阀影响分析系统</h1>
+    </div>
+    
+    <div class="flex items-center space-x-6">
+      <button class="text-dark-2 hover:text-primary transition-colors">
+        <i class="fa fa-bell-o text-xl"></i>
+      </button>
+      <button class="text-dark-2 hover:text-primary transition-colors">
+        <i class="fa fa-cog text-xl"></i>
+      </button>
+      <div class="flex items-center space-x-2">
+        <img src="https://picsum.photos/id/1005/40/40" alt="用户头像" class="w-8 h-8 rounded-full object-cover">
+        <span class="font-medium">管理员</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="flex h-[calc(100vh-4rem)]">
+    <!-- 左侧控制面板 -->
+    <div class="w-80 bg-white shadow-lg z-10 overflow-y-auto control-panel-height transition-all duration-300 ease-in-out">
+      <div class="p-5 border-b border-light-2">
+        <h2 class="text-lg font-semibold mb-4">关阀定位</h2>
+        <form id="locationForm" class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-dark-2 mb-1">坐标类型</label>
+            <div class="flex space-x-2">
+              <label class="inline-flex items-center">
+                <input type="radio" name="coordType" value="gcj02" checked class="w-4 h-4 text-primary">
+                <span class="ml-2 text-sm">高德坐标系</span>
+              </label>
+              <label class="inline-flex items-center">
+                <input type="radio" name="coordType" value="wgs84" class="w-4 h-4 text-primary">
+                <span class="ml-2 text-sm">WGS84坐标系</span>
+              </label>
+            </div>
+          </div>
+          
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label for="latitude" class="block text-sm font-medium text-dark-2 mb-1">纬度</label>
+              <input type="number" id="latitude" step="0.000001" placeholder="例如: 39.9087" 
+                class="w-full px-3 py-2 border border-light-2 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary">
+            </div>
+            <div>
+              <label for="longitude" class="block text-sm font-medium text-dark-2 mb-1">经度</label>
+              <input type="number" id="longitude" step="0.000001" placeholder="例如: 116.3975"
+                class="w-full px-3 py-2 border border-light-2 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary">
+            </div>
+          </div>
+          
+          <div>
+            <label for="valveName" class="block text-sm font-medium text-dark-2 mb-1">阀门名称</label>
+            <input type="text" id="valveName" placeholder="输入阀门标识或名称"
+              class="w-full px-3 py-2 border border-light-2 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary">
+          </div>
+          
+          <button type="button" id="locateBtn" class="w-full bg-primary hover:bg-primary/90 text-white py-2 px-4 rounded-md transition-colors flex items-center justify-center">
+            <i class="fa fa-map-marker mr-2"></i> 定位到地图
+          </button>
+        </form>
+      </div>
+      
+      <div class="p-5 border-b border-light-2">
+        <h2 class="text-lg font-semibold mb-4">影响分析</h2>
+        <button id="analyzeBtn" class="w-full bg-secondary hover:bg-secondary/90 text-white py-2 px-4 rounded-md transition-colors flex items-center justify-center mb-4">
+          <i class="fa fa-line-chart mr-2"></i> 智能分析影响范围
+        </button>
+        
+        <div id="analysisResult" class="hidden">
+          <div class="bg-light-1 p-3 rounded-md mb-3">
+            <div class="flex justify-between items-center mb-2">
+              <span class="text-sm font-medium">影响用户数</span>
+              <span class="text-lg font-bold text-danger">1,256 户</span>
+            </div>
+            <div class="flex justify-between items-center mb-2">
+              <span class="text-sm font-medium">影响区域</span>
+              <span class="text-sm">约 0.87 平方公里</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-sm font-medium">影响管线长度</span>
+              <span class="text-sm">3.2 公里</span>
+            </div>
+          </div>
+          
+          <div class="mb-3">
+            <label class="block text-sm font-medium text-dark-2 mb-1">预计停气时间</label>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <input type="datetime-local" class="w-full px-3 py-2 border border-light-2 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary">
+              </div>
+              <div>
+                <input type="datetime-local" class="w-full px-3 py-2 border border-light-2 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary">
+              </div>
+            </div>
+          </div>
+          
+          <button id="generateNoticeBtn" class="w-full bg-success hover:bg-success/90 text-white py-2 px-4 rounded-md transition-colors flex items-center justify-center">
+            <i class="fa fa-file-text-o mr-2"></i> 生成停气通知
+          </button>
+        </div>
+      </div>
+      
+      <div class="p-5">
+        <h2 class="text-lg font-semibold mb-4">操作记录</h2>
+        <div class="space-y-3 max-h-64 overflow-y-auto scrollbar-hide">
+          <div class="bg-light-1 p-3 rounded-md">
+            <div class="flex justify-between items-start">
+              <span class="font-medium text-sm">定位阀门 V-12345</span>
+              <span class="text-xs text-dark-2">10:23</span>
+            </div>
+            <p class="text-xs text-dark-2 mt-1">坐标: 39.9087, 116.3975</p>
+          </div>
+          
+          <div class="bg-light-1 p-3 rounded-md">
+            <div class="flex justify-between items-start">
+              <span class="font-medium text-sm">执行影响分析</span>
+              <span class="text-xs text-dark-2">昨天 16:45</span>
+            </div>
+            <p class="text-xs text-dark-2 mt-1">影响用户: 876 户</p>
+          </div>
+          
+          <div class="bg-light-1 p-3 rounded-md">
+            <div class="flex justify-between items-start">
+              <span class="font-medium text-sm">发送停气通知</span>
+              <span class="text-xs text-dark-2">昨天 15:30</span>
+            </div>
+            <p class="text-xs text-dark-2 mt-1">通知用户: 520 户</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 中央地图区域 -->
+    <div class="flex-1 relative">
+      <div id="map" class="w-full h-full map-height z-0"></div>
+      
+      <!-- 地图控制按钮 -->
+      <div class="absolute top-4 right-4 z-10 flex flex-col space-y-2">
+        <button id="zoomIn" class="bg-white p-2 rounded-md shadow-md hover:bg-light-1 transition-colors">
+          <i class="fa fa-plus"></i>
+        </button>
+        <button id="zoomOut" class="bg-white p-2 rounded-md shadow-md hover:bg-light-1 transition-colors">
+          <i class="fa fa-minus"></i>
+        </button>
+        <button id="centerMap" class="bg-white p-2 rounded-md shadow-md hover:bg-light-1 transition-colors">
+          <i class="fa fa-crosshairs"></i>
+        </button>
+      </div>
+      
+      <!-- 图层控制 -->
+      <div class="absolute top-4 left-4 z-10 bg-white rounded-md shadow-md p-3">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-sm font-medium">图层控制</span>
+          <i class="fa fa-layers text-primary"></i>
+        </div>
+        <div class="space-y-2">
+          <label class="flex items-center text-sm">
+            <input type="checkbox" checked class="w-4 h-4 text-primary">
+            <span class="ml-2">管线分布</span>
+          </label>
+          <label class="flex items-center text-sm">
+            <input type="checkbox" checked class="w-4 h-4 text-primary">
+            <span class="ml-2">阀门位置</span>
+          </label>
+          <label class="flex items-center text-sm">
+            <input type="checkbox" checked class="w-4 h-4 text-primary">
+            <span class="ml-2">用户分布</span>
+          </label>
+          <label class="flex items-center text-sm">
+            <input type="checkbox" id="showAnalysisLayer" class="w-4 h-4 text-primary">
+            <span class="ml-2">影响范围</span>
+          </label>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 右侧信息面板 -->
+    <div id="infoPanel" class="w-80 bg-white shadow-lg z-10 overflow-y-auto panel-height hidden transition-all duration-300 ease-in-out">
+      <div id="deviceInfo" class="p-5 border-b border-light-2">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-lg font-semibold">设备详情</h2>
+          <button id="closePanel" class="text-dark-2 hover:text-danger">
+            <i class="fa fa-times"></i>
+          </button>
+        </div>
+        
+        <div class="space-y-4">
+          <div class="text-center mb-2">
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 text-primary mb-2">
+              <i class="fa fa-tint text-2xl"></i>
+            </div>
+            <h3 class="font-bold text-lg">阀门 V-12345</h3>
+            <p class="text-sm text-dark-2">DN200 闸阀</p>
+          </div>
+          
+          <div class="grid grid-cols-2 gap-3">
+            <div class="bg-light-1 p-3 rounded-md">
+              <p class="text-xs text-dark-2">安装日期</p>
+              <p class="font-medium">2018-05-12</p>
+            </div>
+            <div class="bg-light-1 p-3 rounded-md">
+              <p class="text-xs text-dark-2">上次检修</p>
+              <p class="font-medium">2023-11-03</p>
+            </div>
+          </div>
+          
+          <div>
+            <p class="text-xs text-dark-2 mb-1">坐标位置</p>
+            <p class="text-sm font-medium">北纬: 39.9087°，东经: 116.3975°</p>
+          </div>
+          
+          <div>
+            <p class="text-xs text-dark-2 mb-1">连接管线</p>
+            <p class="text-sm font-medium">P-5678, P-5679</p>
+          </div>
+          
+          <div>
+            <p class="text-xs text-dark-2 mb-1">状态</p>
+            <div class="inline-flex items-center px-2 py-1 rounded-full bg-success/10 text-success text-xs font-medium">
+              <i class="fa fa-check-circle mr-1"></i> 正常运行
+            </div>
+          </div>
+          
+          <button id="navigateBtn" class="w-full bg-primary hover:bg-primary/90 text-white py-2 px-4 rounded-md transition-colors flex items-center justify-center">
+            <i class="fa fa-location-arrow mr-2"></i> 导航至该位置
+          </button>
+        </div>
+      </div>
+      
+      <div id="notificationPanel" class="p-5 hidden">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-lg font-semibold">停气通知</h2>
+          <button id="closeNoticePanel" class="text-dark-2 hover:text-danger">
+            <i class="fa fa-times"></i>
+          </button>
+        </div>
+        
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-dark-2 mb-1">通知标题</label>
+            <input type="text" value="关于XX区域计划性停气的通知" 
+              class="w-full px-3 py-2 border border-light-2 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary">
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-dark-2 mb-1">停气原因</label>
+            <select class="w-full px-3 py-2 border border-light-2 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary">
+              <option>管道维护检修</option>
+              <option>阀门更换</option>
+              <option>紧急抢修</option>
+              <option>其他原因</option>
+            </select>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-dark-2 mb-1">通知内容</label>
+            <textarea rows="5" class="w-full px-3 py-2 border border-light-2 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary">尊敬的用户：
+
+因管道维护需要，定于2023年X月X日X时至X时对以下区域实施停气：
+
+影响范围：XX路至XX路，XX街至XX街区域
+
+请上述区域用户提前做好准备，关闭家中燃气阀门，防止恢复供气时发生泄漏。由此带来的不便，敬请谅解。
+
+咨询电话：95XXX
+
+XX燃气公司
+2023年X月X日</textarea>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-dark-2 mb-1">通知方式</label>
+            <div class="space-y-2">
+              <label class="flex items-center text-sm">
+                <input type="checkbox" checked class="w-4 h-4 text-primary">
+                <span class="ml-2">短信通知</span>
+              </label>
+              <label class="flex items-center text-sm">
+                <input type="checkbox" checked class="w-4 h-4 text-primary">
+                <span class="ml-2">APP推送</span>
+              </label>
+              <label class="flex items-center text-sm">
+                <input type="checkbox" class="w-4 h-4 text-primary">
+                <span class="ml-2">电话通知（重点用户）</span>
+              </label>
+            </div>
+          </div>
+          
+          <div class="flex space-x-3">
+            <button class="flex-1 bg-gray-200 hover:bg-gray-300 text-dark py-2 px-4 rounded-md transition-colors">
+              保存草稿
+            </button>
+            <button id="sendNoticeBtn" class="flex-1 bg-success hover:bg-success/90 text-white py-2 px-4 rounded-md transition-colors">
+              发送通知
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <div id="navigationPanel" class="p-5 hidden">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-lg font-semibold">导航路线</h2>
+          <button id="closeNavPanel" class="text-dark-2 hover:text-danger">
+            <i class="fa fa-times"></i>
+          </button>
+        </div>
+        
+        <div class="space-y-4">
+          <div class="bg-light-1 p-3 rounded-md">
+            <div class="flex items-center mb-2">
+              <div class="w-6 h-6 rounded-full bg-primary flex items-center justify-center text-white text-xs mr-2">
+                <i class="fa fa-map-marker"></i>
+              </div>
+              <div>
+                <p class="text-sm font-medium">目的地</p>
+                <p class="text-xs text-dark-2">阀门 V-12345 (39.9087, 116.3975)</p>
+              </div>
+            </div>
+            
+            <div class="flex items-center">
+              <div class="w-6 h-6 rounded-full bg-dark flex items-center justify-center text-white text-xs mr-2">
+                <i class="fa fa-user"></i>
+              </div>
+              <div>
+                <p class="text-sm font-medium">当前位置</p>
+                <p class="text-xs text-dark-2">自动获取中...</p>
+              </div>
+            </div>
+          </div>
+          
+          <div class="grid grid-cols-3 gap-2 text-center">
+            <div class="bg-light-1 p-2 rounded-md">
+              <p class="text-xs text-dark-2">距离</p>
+              <p class="font-medium">3.2 公里</p>
+            </div>
+            <div class="bg-light-1 p-2 rounded-md">
+              <p class="text-xs text-dark-2">预计时间</p>
+              <p class="font-medium">15 分钟</p>
+            </div>
+            <div class="bg-light-1 p-2 rounded-md">
+              <p class="text-xs text-dark-2">路线类型</p>
+              <p class="font-medium">驾车</p>
+            </div>
+          </div>
+          
+          <div class="bg-light-1 rounded-md p-3">
+            <h3 class="text-sm font-medium mb-2">路线指引</h3>
+            <div class="space-y-3 max-h-64 overflow-y-auto scrollbar-hide">
+              <div class="flex">
+                <div class="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs mr-2">1</div>
+                <p class="text-sm">从当前位置出发，沿XX路向东行驶500米</p>
+              </div>
+              <div class="flex">
+                <div class="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs mr-2">2</div>
+                <p class="text-sm">右转进入XX大街，行驶1.2公里</p>
+              </div>
+              <div class="flex">
+                <div class="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs mr-2">3</div>
+                <p class="text-sm">左转进入XX巷，行驶800米</p>
+              </div>
+              <div class="flex">
+                <div class="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs mr-2">4</div>
+                <p class="text-sm">到达目的地附近，阀门位于道路北侧绿化带内</p>
+              </div>
+            </div>
+          </div>
+          
+          <button class="w-full bg-primary hover:bg-primary/90 text-white py-2 px-4 rounded-md transition-colors flex items-center justify-center">
+            <i class="fa fa-external-link mr-2"></i> 在外部地图打开
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 通知弹窗 -->
+  <div id="notificationModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6 transform transition-all">
+      <div class="text-center mb-4">
+        <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-success/10 text-success mb-4">
+          <i class="fa fa-check text-2xl"></i>
+        </div>
+        <h3 class="text-xl font-bold">通知发送成功</h3>
+        <p class="text-dark-2 mt-2">已向 1,256 户受影响用户发送停气通知</p>
+      </div>
+      
+      <div class="mt-6">
+        <button id="closeModal" class="w-full bg-primary hover:bg-primary/90 text-white py-2 px-4 rounded-md transition-colors">
+          确认
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 初始化地图
+    const map = L.map('map').setView([39.9042, 116.4074], 13);
+    
+    // 添加地图图层
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+    
+    // 模拟管线数据
+    const pipelineData = [
+      [[39.91, 116.40], [39.92, 116.41], [39.93, 116.41]],
+      [[39.92, 116.41], [39.92, 116.42], [39.91, 116.43]],
+      [[39.91, 116.40], [39.90, 116.41], [39.89, 116.40]]
+    ];
+    
+    // 绘制管线
+    pipelineData.forEach(pipeline => {
+      L.polyline(pipeline, {
+        color: '#165DFF',
+        weight: 4,
+        opacity: 0.7,
+        dashArray: '10, 5'
+      }).addTo(map)
+        .on('click', function() {
+          showPipelineInfo();
+        });
+    });
+    
+    // 模拟阀门数据
+    const valveData = [
+      { id: 'V-12345', name: '主管道阀门', lat: 39.9087, lng: 116.3975, type: '闸阀', size: 'DN200', status: '正常' },
+      { id: 'V-12346', name: '支线阀门', lat: 39.9150, lng: 116.4120, type: '球阀', size: 'DN150', status: '正常' },
+      { id: 'V-12347', name: '区域阀门', lat: 39.8990, lng: 116.4050, type: '闸阀', size: 'DN100', status: '维护中' }
+    ];
+    
+    // 添加阀门标记
+    const valveMarkers = [];
+    valveData.forEach(valve => {
+      const markerColor = valve.status === '正常' ? 'green' : 'orange';
+      const markerIcon = L.divIcon({
+        className: 'custom-div-icon',
+        html: `<div style="background-color: ${markerColor}; width: 16px; height: 16px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 0 2px ${markerColor};"></div>`,
+        iconSize: [20, 20],
+        iconAnchor: [10, 10]
+      });
+      
+      const marker = L.marker([valve.lat, valve.lng], { icon: markerIcon }).addTo(map);
+      marker.bindTooltip(`${valve.name} (${valve.id})`);
+      marker.valveData = valve;
+      
+      marker.on('click', function() {
+        showValveInfo(this.valveData);
+      });
+      
+      valveMarkers.push(marker);
+    });
+    
+    // 模拟用户分布数据
+    const userData = [];
+    for (let i = 0; i < 50; i++) {
+      // 在主要阀门周围随机分布用户
+      const baseLat = 39.9087;
+      const baseLng = 116.3975;
+      const lat = baseLat + (Math.random() - 0.5) * 0.02;
+      const lng = baseLng + (Math.random() - 0.5) * 0.02;
+      userData.push([lat, lng]);
+    }
+    
+    // 添加用户分布点
+    const userLayer = L.layerGroup().addTo(map);
+    userData.forEach(user => {
+      L.circleMarker(user, {
+        radius: 3,
+        fillColor: '#6B7280',
+        fillOpacity: 0.6,
+        stroke: false
+      }).addTo(userLayer);
+    });
+    
+    // 影响范围图层
+    let impactLayer;
+    
+    // 地图控制
+    document.getElementById('zoomIn').addEventListener('click', () => {
+      map.zoomIn();
+    });
+    
+    document.getElementById('zoomOut').addEventListener('click', () => {
+      map.zoomOut();
+    });
+    
+    document.getElementById('centerMap').addEventListener('click', () => {
+      map.setView([39.9042, 116.4074], 13);
+    });
+    
+    // 定位按钮事件
+    document.getElementById('locateBtn').addEventListener('click', () => {
+      const lat = parseFloat(document.getElementById('latitude').value);
+      const lng = parseFloat(document.getElementById('longitude').value);
+      const name = document.getElementById('valveName').value;
+      
+      if (isNaN(lat) || isNaN(lng)) {
+        alert('请输入有效的经纬度坐标');
+        return;
+      }
+      
+      // 移动地图到指定位置
+      map.setView([lat, lng], 16);
+      
+      // 添加临时标记
+      const tempMarker = L.marker([lat, lng], {
+        icon: L.divIcon({
+          className: 'custom-div-icon',
+          html: `<div style="background-color: #F53F3F; width: 16px; height: 16px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 0 2px #F53F3F;"></div>`,
+          iconSize: [20, 20],
+          iconAnchor: [10, 10]
+        })
+      }).addTo(map);
+      
+      if (name) {
+        tempMarker.bindTooltip(name);
+      }
+      
+      // 5秒后移除临时标记
+      setTimeout(() => {
+        map.removeLayer(tempMarker);
+      }, 5000);
+      
+      // 显示分析结果面板
+      document.getElementById('analysisResult').classList.remove('hidden');
+    });
+    
+    // 分析按钮事件
+    document.getElementById('analyzeBtn').addEventListener('click', () => {
+      // 模拟分析过程
+      document.getElementById('analyzeBtn').innerHTML = '<i class="fa fa-spinner fa-spin mr-2"></i> 分析中...';
+      document.getElementById('analyzeBtn').disabled = true;
+      
+      setTimeout(() => {
+        // 恢复按钮状态
+        document.getElementById('analyzeBtn').innerHTML = '<i class="fa fa-line-chart mr-2"></i> 智能分析影响范围';
+        document.getElementById('analyzeBtn').disabled = false;
+        
+        // 显示分析结果
+        document.getElementById('analysisResult').classList.remove('hidden');
+        
+        // 绘制影响范围
+        if (impactLayer) {
+          map.removeLayer(impactLayer);
+        }
+        
+        // 假设以第一个阀门为中心的影响范围
+        const center = [valveData[0].lat, valveData[0].lng];
+        impactLayer = L.circle(center, {
+          radius: 500, // 500米范围
+          color: '#F53F3F',
+          fillColor: '#F53F3F',
+          fillOpacity: 0.2,
+          weight: 2,
+          dashArray: '5, 5'
+        }).addTo(map);
+        
+        // 显示影响范围内的用户
+        const affectedUsers = userData.filter(user => {
+          return map.distance(user, center) <= 500;
+        });
+        
+        // 更新影响用户数
+        document.querySelector('#analysisResult .text-danger').textContent = `${affectedUsers.length} 户`;
+        
+        // 勾选显示影响范围
+        document.getElementById('showAnalysisLayer').checked = true;
+        
+      }, 2000);
+    });
+    
+    // 显示影响范围图层控制
+    document.getElementById('showAnalysisLayer').addEventListener('change', function() {
+      if (this.checked && impactLayer) {
+        map.addLayer(impactLayer);
+      } else if (impactLayer) {
+        map.removeLayer(impactLayer);
+      }
+    });
+    
+    // 生成通知按钮事件
+    document.getElementById('generateNoticeBtn').addEventListener('click', () => {
+      // 显示通知面板，隐藏其他面板
+      document.getElementById('deviceInfo').classList.add('hidden');
+      document.getElementById('navigationPanel').classList.add('hidden');
+      document.getElementById('notificationPanel').classList.remove('hidden');
+      document.getElementById('infoPanel').classList.remove('hidden');
+    });
+    
+    // 发送通知按钮事件
+    document.getElementById('sendNoticeBtn').addEventListener('click', () => {
+      document.getElementById('notificationModal').classList.remove('hidden');
+    });
+    
+    // 关闭弹窗
+    document.getElementById('closeModal').addEventListener('click', () => {
+      document.getElementById('notificationModal').classList.add('hidden');
+    });
+    
+    // 关闭面板
+    document.getElementById('closePanel').addEventListener('click', () => {
+      document.getElementById('infoPanel').classList.add('hidden');
+    });
+    
+    document.getElementById('closeNoticePanel').addEventListener('click', () => {
+      document.getElementById('infoPanel').classList.add('hidden');
+    });
+    
+    document.getElementById('closeNavPanel').addEventListener('click', () => {
+      document.getElementById('infoPanel').classList.add('hidden');
+    });
+    
+    // 导航按钮事件
+    document.getElementById('navigateBtn').addEventListener('click', () => {
+      // 显示导航面板，隐藏其他面板
+      document.getElementById('deviceInfo').classList.add('hidden');
+      document.getElementById('notificationPanel').classList.add('hidden');
+      document.getElementById('navigationPanel').classList.remove('hidden');
+    });
+    
+    // 显示阀门信息
+    function showValveInfo(valve) {
+      // 更新设备信息面板
+      document.querySelector('#deviceInfo h3').textContent = `阀门 ${valve.id}`;
+      document.querySelector('#deviceInfo .text-sm.text-dark-2').textContent = `${valve.size} ${valve.type}`;
+      
+      // 更新详细信息
+      const infoElements = document.querySelectorAll('#deviceInfo .font-medium');
+      infoElements[0].textContent = valve.status === '正常' ? '正常运行' : '维护中';
+      infoElements[1].textContent = '2018-05-12'; // 安装日期
+      infoElements[2].textContent = '2023-11-03'; // 上次检修
+      infoElements[3].textContent = `北纬: ${valve.lat.toFixed(4)}°，东经: ${valve.lng.toFixed(4)}°`;
+      infoElements[4].textContent = 'P-5678, P-5679'; // 连接管线
+      
+      // 更新状态标签
+      const statusLabel = document.querySelector('#deviceInfo .inline-flex');
+      if (valve.status === '正常') {
+        statusLabel.className = 'inline-flex items-center px-2 py-1 rounded-full bg-success/10 text-success text-xs font-medium';
+        statusLabel.innerHTML = '<i class="fa fa-check-circle mr-1"></i> 正常运行';
+      } else {
+        statusLabel.className = 'inline-flex items-center px-2 py-1 rounded-full bg-warning/10 text-warning text-xs font-medium';
+        statusLabel.innerHTML = '<i class="fa fa-exclamation-circle mr-1"></i> 维护中';
+      }
+      
+      // 显示设备信息面板，隐藏其他面板
+      document.getElementById('notificationPanel').classList.add('hidden');
+      document.getElementById('navigationPanel').classList.add('hidden');
+      document.getElementById('deviceInfo').classList.remove('hidden');
+      document.getElementById('infoPanel').classList.remove('hidden');
+    }
+    
+    // 显示管线信息
+    function showPipelineInfo() {
+      // 这里可以实现显示管线详细信息的逻辑
+      alert('管线信息：DN200 天然气管道，压力等级：中压A，敷设年份：2017年');
+    }
+  </script>
+</body>
+</html>

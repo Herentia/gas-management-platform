@@ -241,6 +241,13 @@ const allMenuItems: Record<string, MenuItem[]> = {
       //     icon: markRaw(Tools)
       //   }
       // ]
+    },
+    {
+      id: 5,
+      title: '关阀影响分析',
+      path: '/pipe-network/valve-analysis',
+      icon: markRaw(SwitchButton),
+      children: []
     }
   ],
   // 巡检管理菜单
@@ -304,6 +311,13 @@ const allMenuItems: Record<string, MenuItem[]> = {
       icon: markRaw(DataBoard),
       children: []
     },
+    {
+      id: 3,
+      title: '应急抢险指挥',
+      path: '/engineering/emergency-command',
+      icon: markRaw(WarningFilled),
+      children: []
+    }
   ],
   // 客服管理菜单
   'customer-service': [
