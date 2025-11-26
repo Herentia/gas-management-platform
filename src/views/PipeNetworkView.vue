@@ -74,24 +74,26 @@
           <div class="panel-resize-handle" @mousedown="startResize('gasStatus')"></div>
         </div>
 
-        <!-- 新增右侧预警信息编辑面板 -->
-        <div class="floating-panel right-warning-panel"
-          :class="{ 'panel-hidden': !showWarningPanel, 'with-bottom-panel': showBottomPanel }"
-          :style="warningPanelStyle">
+        <!-- 修改现有的右侧面板区域 -->
+        <div class="floating-panel right-panel"
+            :class="{ 'panel-hidden': !showRightPanel, 'with-bottom-panel': showBottomPanel }"
+            :style="rightPanelStyle">
           <div class="panel-header">
             <div class="panel-title">
               <el-icon>
-                <Edit />
+                <Edit v-if="currentRightPanel === 'warning'" />
+                <Monitor v-else-if="currentRightPanel === 'valve-detail'" />
               </el-icon>
-              <span>预警信息编辑</span>
+              <span>{{ rightPanelTitle }}</span>
             </div>
             <div class="panel-actions">
-              <el-button link :icon="Close" @click="showWarningPanel = false" class="close-btn" />
+              <el-button link :icon="Close" @click="showRightPanel = false" class="close-btn" />
             </div>
           </div>
           <div class="panel-content">
+            <!-- 预警信息编辑组件 -->
             <WarningInfoEditor
-              v-if="showWarningPanel"
+              v-if="currentRightPanel === 'warning'"
               :warning-data="currentWarningData"
               @title-change="handleWarningTitleChange"
               @level-change="handleWarningLevelChange"
@@ -101,8 +103,14 @@
               @send-direct="sendWarningDirect"
               @forward-approval="forwardWarningApproval"
               :related-persons="relatedPersons" />
+
+            <!-- 阀门设备详情组件 -->
+            <ValveDetailPanel
+              v-else-if="currentRightPanel === 'valve-detail'"
+              :valve-data="currentValveDetail"
+              @navigate="handleValveNavigation" />
           </div>
-          <div class="panel-resize-handle left" @mousedown="startResize('warning')"></div>
+          <div class="panel-resize-handle left" @mousedown="startResize('right')"></div>
         </div>
 
         <!-- 左侧树形结构悬浮面板 -->
@@ -243,6 +251,99 @@ import { ElMessage } from 'element-plus'
 import EmergencyRescuePanel from '@/components/map/EmergencyRescuePanel.vue'
 // 导入预警信息编辑组件
 import WarningInfoEditor from '@/components/map/WarningInfoEditor.vue'
+// 导入阀门设备详情组件
+import ValveDetailPanel from '@/components/device/ValveDetailPanel.vue'
+
+
+// 在响应式数据部分添加
+const showRightPanel = ref(false)
+const rightPanelWidth = ref(350)
+const currentRightPanel = ref<'warning' | 'valve-detail'>('warning')
+const currentValveDetail = ref<any>(null)
+
+// 右侧面板样式
+const rightPanelStyle = computed(() => {
+  const style: any = {
+    width: `${rightPanelWidth.value}px`
+  }
+
+  if (showBottomPanel.value && showRightPanel.value) {
+    const bottomPanelVisibleHeight = bottomPanelHeight.value + 40
+    style.height = `calc(100% - ${bottomPanelVisibleHeight}px)`
+  } else {
+    style.height = 'calc(100% - 40px)'
+  }
+
+  return style
+})
+
+// 右侧面板标题
+const rightPanelTitle = computed(() => {
+  const titles = {
+    'warning': '预警信息编辑',
+    'valve-detail': '阀门设备详情'
+  }
+  return titles[currentRightPanel.value] || '右侧面板'
+})
+
+// 在关阀分析方法中修改 handleImpactAnalysis
+const handleImpactAnalysis = async (valve: any) => {
+  console.log('执行影响分析:', valve)
+
+  // 模拟分析过程
+  await new Promise(resolve => setTimeout(resolve, 2000))
+
+  // 模拟分析结果
+  analysisResult.value = {
+    affectedUsers: 14,
+    affectedArea: 0.87,
+    affectedPipelineLength: 3.2
+  }
+
+  // 在右侧面板显示阀门设备详情
+  showValveDetailInRightPanel(valve)
+
+  // 添加操作记录
+  operationRecords.value.unshift({
+    action: '执行影响分析',
+    time: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
+    details: `影响用户: ${analysisResult.value.affectedUsers} 户`
+  })
+}
+
+// 新增方法：在右侧面板显示阀门详情
+const showValveDetailInRightPanel = (valve: any) => {
+  // 转换阀门数据格式
+  currentValveDetail.value = {
+    id: valve.id,
+    name: valve.name,
+    specification: 'DN150 球阀',
+    installationDate: '2018-05-12',
+    lastMaintenance: '2023-11-03',
+    coordinates: `${valve.coordinates[1].toFixed(4)}°, ${valve.coordinates[0].toFixed(4)}°`,
+    connectedPipelines: 'P-5678, P-5679',
+    status: 'normal'
+  }
+
+  // 切换到阀门详情面板并显示
+  currentRightPanel.value = 'valve-detail'
+  showRightPanel.value = true
+}
+
+// 处理导航事件
+const handleValveNavigation = (valveData: any) => {
+  console.log('导航到阀门位置:', valveData)
+  // 这里可以集成实际的地图导航功能
+  ElMessage.success(`开始导航到 ${valveData.name}`)
+
+  // 聚焦到阀门位置
+  if (map) {
+    const coords = valveData.coordinates.split(',').map((coord: string) =>
+      parseFloat(coord.replace('°', '').trim())
+    )
+    focusOnCoordinates([coords[1], coords[0]]) // 注意坐标顺序
+  }
+}
 
 // 关阀分析相关数据
 const currentValve = ref<any>(null)
@@ -296,27 +397,6 @@ const handleValveLocate = (valve: any) => {
       details: `坐标: ${valve.coordinates[1].toFixed(4)}, ${valve.coordinates[0].toFixed(4)}`
     })
   }
-}
-
-const handleImpactAnalysis = async (valve: any) => {
-  console.log('执行影响分析:', valve)
-
-  // 模拟分析过程
-  await new Promise(resolve => setTimeout(resolve, 2000))
-
-  // 模拟分析结果
-  analysisResult.value = {
-    affectedUsers: 14,
-    affectedArea: 0.87,
-    affectedPipelineLength: 3.2
-  }
-
-  // 添加操作记录
-  operationRecords.value.unshift({
-    action: '执行影响分析',
-    time: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
-    details: `影响用户: ${analysisResult.value.affectedUsers} 户`
-  })
 }
 
 const generateShutdownNotice = (data: any) => {
@@ -1736,10 +1816,12 @@ const handleEngineeringMenu = (menuKey: string) => {
       // 显示应急抢险面板
       currentGasPanel.value = 'emergency-command'
       showGasPanel.value = true
-      showWarningPanel.value = true // 同时显示预警面板
+      // 显示右侧预警面板
+      currentRightPanel.value = 'warning'
+      showRightPanel.value = true
       break
+    }
   }
-}
 
 // 客服管理菜单处理
 const handleCustomerServiceMenu = (menuKey: string) => {
@@ -1994,10 +2076,10 @@ const startResize = (direction: string) => {
 
     if (direction === 'left') {
       leftPanelWidth.value = Math.max(280, Math.min(500, e.clientX))
-    } else if (direction === 'warning') {
-      // 右侧预警面板调整
+    } else if (direction === 'right') {
+      // 右侧面板调整
       const windowWidth = window.innerWidth
-      warningPanelWidth.value = Math.max(300, Math.min(500, windowWidth - e.clientX))
+      rightPanelWidth.value = Math.max(300, Math.min(500, windowWidth - e.clientX))
     } else if (direction === 'bottom') {
       const windowHeight = window.innerHeight
       const newHeight = Math.max(200, Math.min(400, windowHeight - e.clientY))
@@ -3671,32 +3753,26 @@ const getTagType = (type: string) => {
   font-size: 16px;
 }
 
-/* 右侧预警信息面板样式 */
-.right-warning-panel {
+/* 修改现有的右侧面板样式类名 */
+.right-panel {
   right: 20px;
   top: 20px;
-  width: v-bind(warningPanelWidth + 'px');
+  width: v-bind(rightPanelWidth + 'px');
   min-width: 300px;
   max-width: 500px;
   background: linear-gradient(135deg, v-bind('gasBlueTheme.lightBlue') 0%, white 100%);
   border: 1px solid v-bind('gasBlueTheme.borderBlue');
 }
 
-.right-warning-panel.panel-hidden {
+.right-panel.panel-hidden {
   opacity: 0;
   visibility: hidden;
   transform: scale(0.95);
 }
 
-/* 右侧面板的调整手柄在左边 */
-.right-warning-panel .panel-resize-handle.left {
-  left: -2px;
-  right: auto;
-}
-
 /* 响应式设计 */
 @media (max-width: 1200px) {
-  .right-warning-panel {
+  .right-panel {
     right: 10px;
     width: calc(50vw - 60px);
     min-width: 280px;
@@ -3704,19 +3780,8 @@ const getTagType = (type: string) => {
 }
 
 @media (max-width: 768px) {
-  .right-warning-panel {
+  .right-panel {
     display: none; /* 移动端隐藏右侧面板 */
   }
-}
-
-/* 确保两个面板不会重叠 */
-.left-gas-status-panel {
-  left: 20px;
-  z-index: 1000;
-}
-
-.right-warning-panel {
-  right: 20px;
-  z-index: 1000;
 }
 </style>

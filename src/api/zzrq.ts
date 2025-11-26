@@ -18,11 +18,11 @@ export const zzrqApi = {
   },
   // 获取点图形数据
   getPntByArea(params?: { minLng: number; minLat: number; maxLng: number; maxLat: number }) {
-    return request.get<any>('/api/pnt/by-bounds', { params });
+    return request.get<any>('/pnt/by-bounds', { params });
   },
   // 获取线图形数据
   getLinByArea(params?: { minLng: number; minLat: number; maxLng: number; maxLat: number }) {
-    return request.get<any>('/api/lin/by-bounds', { params });
+    return request.get<any>('/lin/by-bounds', { params });
   }
   // // 用户登录
   // login(data: LoginParams) {

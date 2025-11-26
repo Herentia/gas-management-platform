@@ -10,6 +10,7 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), 'VITE_')
 
   return {
+    // base: mode === 'production' ? './' : '/', // 添加这一行
     plugins: [vue(), tailwindcss()],
     resolve: {
       alias: {
@@ -31,5 +32,10 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
+    // // 添加构建配置
+    // build: {
+    //   outDir: 'dist',
+    //   assetsDir: 'assets',
+    // },
   }
 })

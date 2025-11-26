@@ -2,12 +2,22 @@
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
 
-const baseURL = '/api'
+// const baseURL = '/api'
 
 const request = axios.create({
-  baseURL,
+  baseURL: import.meta.env.VITE_APP_BASE_API,
   timeout: 20000,
 })
+
+// 根据环境设置不同的baseURL
+const isDevelopment = import.meta.env.MODE === 'development'
+
+// const request = axios.create({
+//   baseURL: isDevelopment
+//     ? '/api' // 开发环境使用代理，不需要baseURL
+//     : import.meta.env.VITE_APP_BASE_API, // 生产环境使用完整API地址
+//   timeout: 10000,
+// })
 
 // 请求拦截器
 request.interceptors.request.use(
