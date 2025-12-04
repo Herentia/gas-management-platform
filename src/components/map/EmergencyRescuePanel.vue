@@ -10,16 +10,11 @@
     <div class="location-method-section">
       <div class="section-title">定位方式</div>
       <div class="method-buttons">
-        <el-button
-          :type="locationMethod === 'manual' ? 'primary' : ''"
-          @click="locationMethod = 'manual'"
+        <el-button :type="locationMethod === 'manual' ? 'primary' : ''" @click="locationMethod = 'manual'"
           class="method-btn">
           手动输入
         </el-button>
-        <el-button
-          :type="locationMethod === 'gps' ? 'primary' : ''"
-          @click="handleGPSGet"
-          class="method-btn">
+        <el-button :type="locationMethod === 'gps' ? 'primary' : ''" @click="handleGPSGet" class="method-btn">
           GPS获取
         </el-button>
       </div>
@@ -30,23 +25,13 @@
       <div class="coordinate-row">
         <div class="coordinate-item">
           <div class="coordinate-label">纬度</div>
-          <el-input
-            v-model="latitude"
-            placeholder="例如：39.908"
-            :disabled="locationMethod === 'gps'"
-            @input="handleCoordinateInput"
-            class="coordinate-input"
-          />
+          <el-input v-model="latitude" placeholder="例如：39.908" :disabled="locationMethod === 'gps'"
+            @input="handleCoordinateInput" class="coordinate-input" />
         </div>
         <div class="coordinate-item">
           <div class="coordinate-label">经度</div>
-          <el-input
-            v-model="longitude"
-            placeholder="例如：116.39"
-            :disabled="locationMethod === 'gps'"
-            @input="handleCoordinateInput"
-            class="coordinate-input"
-          />
+          <el-input v-model="longitude" placeholder="例如：116.39" :disabled="locationMethod === 'gps'"
+            @input="handleCoordinateInput" class="coordinate-input" />
         </div>
       </div>
     </div>
@@ -54,14 +39,8 @@
     <!-- 漏点描述 -->
     <div class="description-section">
       <div class="section-title">漏点描述</div>
-      <el-input
-        v-model="leakDescription"
-        type="textarea"
-        :rows="3"
-        placeholder="例如：主管道破裂，泄漏严重..."
-        @input="handleLeakDescribe"
-        class="description-input"
-      />
+      <el-input v-model="leakDescription" type="textarea" :rows="3" placeholder="例如：主管道破裂，泄漏严重..."
+        @input="handleLeakDescribe" class="description-input" />
     </div>
 
     <!-- 分隔线 -->
@@ -69,11 +48,7 @@
 
     <!-- 定位漏点按钮 -->
     <div class="action-section">
-      <el-button
-        type="primary"
-        @click="handleLocateLeak"
-        :disabled="!isCoordinatesValid"
-        class="locate-btn">
+      <el-button type="primary" @click="handleLocateLeak" :disabled="!isCoordinatesValid" class="locate-btn">
         定位漏点
       </el-button>
     </div>
@@ -81,11 +56,7 @@
     <!-- 影响分析 -->
     <div class="analysis-section">
       <div class="section-title">影响分析</div>
-      <el-button
-        type="warning"
-        @click="handleAnalyzeImpact"
-        :disabled="!currentLeakData"
-        class="analysis-btn">
+      <el-button type="warning" @click="handleAnalyzeImpact" :disabled="!currentLeakData" class="analysis-btn">
         分析影响区域
       </el-button>
     </div>
@@ -97,10 +68,7 @@
     <div class="rescue-records-section">
       <div class="section-title">抢险记录</div>
       <div class="records-list">
-        <div
-          v-for="(record, index) in rescueRecords"
-          :key="index"
-          class="record-item">
+        <div v-for="(record, index) in rescueRecords" :key="index" class="record-item">
           <div class="record-header">
             <span class="record-title">{{ record.title }}</span>
             <span class="record-time">{{ record.time }}</span>
@@ -185,8 +153,8 @@ const handleCoordinateInput = () => {
 const handleGPSGet = () => {
   // 模拟GPS获取坐标
   locationMethod.value = 'gps'
-  latitude.value = '39.9087'
-  longitude.value = '116.3974'
+  latitude.value = '36.60250402'
+  longitude.value = '109.46971290'
 
   emit('gps-get', {
     latitude: latitude.value,

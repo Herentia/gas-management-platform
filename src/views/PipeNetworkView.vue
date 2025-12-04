@@ -22,62 +22,62 @@
           :theme-colors="gasBlueTheme" @close="showPipeTypePanel = false" @filter-change="handlePipeTypeFilterChange"
           @minimize="handlePipeTypeMinimize" />
 
-        <!-- 修改现有的气源压力面板区域，使其支持多个组件 -->
+        <!-- 左侧面板区域，使其支持多个组件 -->
         <div class="floating-panel left-gas-status-panel"
-          :class="{ 'panel-hidden': !showGasPanel, 'with-bottom-panel': showBottomPanel }"
-          :style="gasStatusPanelStyle">
+          :class="{ 'panel-hidden': !showGasPanel, 'with-bottom-panel': showBottomPanel }" :style="gasStatusPanelStyle">
           <div class="panel-header">
             <div class="panel-title">
               <el-icon>
                 <DataLine v-if="currentGasPanel === 'status'" />
                 <Operation v-else-if="currentGasPanel === 'analysis'" />
+                <Tools v-else-if="currentGasPanel === 'emergency-command'" />
+                <Cpu v-else-if="currentGasPanel === 'terminal-equipment'" />
               </el-icon>
               <span>{{ gasPanelTitle }}</span>
             </div>
             <div class="panel-actions">
+              <!-- 根据当前面板显示不同的操作按钮 -->
+              <template v-if="currentGasPanel === 'terminal-equipment'">
+                <el-tooltip content="刷新设备数据">
+                  <el-button link :icon="Refresh" @click="refreshTerminalData" />
+                </el-tooltip>
+              </template>
+              <template v-else-if="currentGasPanel === 'status'">
+                <el-tooltip content="刷新气源数据">
+                  <el-button link :icon="Refresh" @click="refreshGasStatusData" />
+                </el-tooltip>
+              </template>
               <el-button link :icon="Close" @click="showGasPanel = false" class="close-btn" />
             </div>
           </div>
           <div class="panel-content">
             <!-- 气源压力运行状态组件 -->
-            <GasStatusPanel
-              v-if="currentGasPanel === 'status'"
-              :data="gasStatusDevices"
-              @device-click="handleGasDeviceClick"
-              @search="handleGasSearch"
-              @status-change="handleGasStatusChange"
+            <GasStatusPanel v-if="currentGasPanel === 'status'" :data="gasStatusDevices"
+              @device-click="handleGasDeviceClick" @search="handleGasSearch" @status-change="handleGasStatusChange"
               @export="exportGasStatusData" />
 
             <!-- 关阀分析组件 -->
-            <GasAnalysisPanel
-              v-else-if="currentGasPanel === 'analysis'"
-              :valve-data="currentValve"
-              @valve-search="handleValveSearch"
-              @valve-locate="handleValveLocate"
-              @impact-analysis="handleImpactAnalysis"
-              @generate-notice="generateShutdownNotice"
-              :analysis-result="analysisResult"
-              :operation-records="operationRecords" />
+            <GasAnalysisPanel v-else-if="currentGasPanel === 'analysis'" :valve-data="currentValve"
+              @valve-search="handleValveSearch" @valve-locate="handleValveLocate"
+              @impact-analysis="handleImpactAnalysis" @generate-notice="generateShutdownNotice"
+              :analysis-result="analysisResult" :operation-records="operationRecords" />
 
-              <!-- 应急抢险组件 -->
-            <EmergencyRescuePanel
-              v-else-if="currentGasPanel === 'emergency-command'"
-              :leak-data="currentLeakData"
-              @location-method-change="handleLocationMethodChange"
-              @coordinate-input="handleCoordinateInput"
-              @gps-get="handleGPSGet"
-              @leak-describe="handleLeakDescribe"
-              @locate-leak="handleLocateLeak"
-              @analyze-impact="handleAnalyzeImpact"
-              :rescue-records="rescueRecords" />
-            </div>
+            <!-- 应急抢险组件 -->
+            <EmergencyRescuePanel v-else-if="currentGasPanel === 'emergency-command'" :leak-data="currentLeakData"
+              @location-method-change="handleLocationMethodChange" @coordinate-input="handleCoordinateInput"
+              @gps-get="handleGPSGet" @leak-describe="handleLeakDescribe" @locate-leak="handleLocateLeak"
+              @analyze-impact="handleAnalyzeImpact" :rescue-records="rescueRecords" />
+
+            <!-- 终端设备管理组件 -->
+            <TerminalEquipmentPanel v-else-if="currentGasPanel === 'terminal-equipment'" ref="terminalEquipmentRef"
+              @device-click="handleTerminalDeviceClick" />
+          </div>
           <div class="panel-resize-handle" @mousedown="startResize('gasStatus')"></div>
         </div>
 
         <!-- 修改现有的右侧面板区域 -->
         <div class="floating-panel right-panel"
-            :class="{ 'panel-hidden': !showRightPanel, 'with-bottom-panel': showBottomPanel }"
-            :style="rightPanelStyle">
+          :class="{ 'panel-hidden': !showRightPanel, 'with-bottom-panel': showBottomPanel }" :style="rightPanelStyle">
           <div class="panel-header">
             <div class="panel-title">
               <el-icon>
@@ -92,22 +92,14 @@
           </div>
           <div class="panel-content">
             <!-- 预警信息编辑组件 -->
-            <WarningInfoEditor
-              v-if="currentRightPanel === 'warning'"
-              :warning-data="currentWarningData"
-              @title-change="handleWarningTitleChange"
-              @level-change="handleWarningLevelChange"
-              @content-change="handleWarningContentChange"
-              @channel-change="handleWarningChannelChange"
-              @save-draft="saveWarningDraft"
-              @send-direct="sendWarningDirect"
-              @forward-approval="forwardWarningApproval"
+            <WarningInfoEditor v-if="currentRightPanel === 'warning'" :warning-data="currentWarningData"
+              @title-change="handleWarningTitleChange" @level-change="handleWarningLevelChange"
+              @content-change="handleWarningContentChange" @channel-change="handleWarningChannelChange"
+              @save-draft="saveWarningDraft" @send-direct="sendWarningDirect" @forward-approval="forwardWarningApproval"
               :related-persons="relatedPersons" />
 
             <!-- 阀门设备详情组件 -->
-            <ValveDetailPanel
-              v-else-if="currentRightPanel === 'valve-detail'"
-              :valve-data="currentValveDetail"
+            <ValveDetailPanel v-else-if="currentRightPanel === 'valve-detail'" :valve-data="currentValveDetail"
               @navigate="handleValveNavigation" />
           </div>
           <div class="panel-resize-handle left" @mousedown="startResize('right')"></div>
@@ -115,7 +107,7 @@
 
         <!-- 左侧树形结构悬浮面板 -->
         <div class="floating-panel left-tree-panel"
-          :class="{ 'panel-hidden': !showLeftPanel, 'with-bottom-panel': showBottomPanel }" :style="leftPanelStyle">
+          :class="{ 'panel-hidden': !showLeftPanel, 'with-bottom-panel': showBottomPanel }" :style="leftTreePanelStyle">
           <div class="panel-header">
             <div class="panel-title">
               <el-icon>
@@ -135,7 +127,7 @@
           <div class="panel-resize-handle" @mousedown="startResize('left')"></div>
         </div>
 
-        <!-- 底部表格悬浮面板 -->
+        <!-- 修改底部面板，添加终端统计组件 -->
         <div class="floating-panel bottom-table-panel" :class="{ 'panel-hidden': !showBottomPanel }">
           <div class="panel-header">
             <div class="panel-title">
@@ -145,35 +137,44 @@
               <span>{{ bottomTableTitle }}</span>
             </div>
             <div class="panel-actions">
-              <el-tooltip content="刷新数据">
-                <el-button link :icon="Refresh" @click="refreshTableData" />
-              </el-tooltip>
-              <el-tooltip content="导出数据">
-                <el-button link :icon="Download" @click="exportTableData" />
-              </el-tooltip>
+              <!-- 根据当前面板显示不同的操作按钮 -->
+              <template v-if="currentBottomPanel === 'terminal-stats'">
+                <el-tooltip content="刷新统计">
+                  <el-button link :icon="Refresh" @click="refreshTerminalStats" />
+                </el-tooltip>
+              </template>
+              <template v-else>
+                <el-tooltip content="刷新数据">
+                  <el-button link :icon="Refresh" @click="refreshTableData" />
+                </el-tooltip>
+                <el-tooltip content="导出数据">
+                  <el-button link :icon="Download" @click="exportTableData" />
+                </el-tooltip>
+              </template>
               <el-button link :icon="Close" @click="showBottomPanel = false" class="close-btn" />
             </div>
           </div>
           <div class="panel-content">
-            <!-- 动态表格组件 -->
-            <DataTable :data="tableData" :loading="tableLoading" :columns="tableColumns" :show-actions="true"
+            <!-- 终端统计面板 -->
+            <TerminalStatsPanel ref="terminalStatsRef" v-if="currentBottomPanel === 'terminal-stats'" />
+
+            <!-- 原有的数据表格 -->
+            <DataTable v-else :data="tableData" :loading="tableLoading" :columns="tableColumns" :show-actions="true"
               :show-pagination="true" :show-edit="false" :show-delete="false" @row-click="handleTableRowClick"
               @view="handleTableView" @refresh="refreshTableData" @export="exportTableData" @search="handleTableSearch">
-              <!-- 自定义状态列 -->
+              <!-- 自定义插槽保持不变 -->
               <template #status="{ row }">
                 <el-tag :type="row.status === '正常' ? 'success' : 'danger'" size="small">
                   {{ row.status }}
                 </el-tag>
               </template>
 
-              <!-- 自定义类型列 -->
               <template #type="{ row }">
                 <el-tag :type="getTagType(row.type)" size="small">
                   {{ row.type }}
                 </el-tag>
               </template>
 
-              <!-- 自定义操作列 -->
               <template #actions="{ row }">
                 <el-button link type="primary" @click.stop="handleTableView(row)">
                   查看
@@ -253,6 +254,9 @@ import EmergencyRescuePanel from '@/components/map/EmergencyRescuePanel.vue'
 import WarningInfoEditor from '@/components/map/WarningInfoEditor.vue'
 // 导入阀门设备详情组件
 import ValveDetailPanel from '@/components/device/ValveDetailPanel.vue'
+// 导入终端设备管理组件
+import TerminalEquipmentPanel from '@/components/map/TerminalEquipmentPanel.vue'
+import TerminalStatsPanel from '@/components/map/TerminalStatsPanel.vue'
 
 
 // 在响应式数据部分添加
@@ -260,6 +264,12 @@ const showRightPanel = ref(false)
 const rightPanelWidth = ref(350)
 const currentRightPanel = ref<'warning' | 'valve-detail'>('warning')
 const currentValveDetail = ref<any>(null)
+
+const refreshTerminalStats = () => {
+  if (terminalStatsRef.value) {
+    terminalStatsRef.value.refreshStats()
+  }
+}
 
 // 右侧面板样式
 const rightPanelStyle = computed(() => {
@@ -352,7 +362,7 @@ const operationRecords = ref<any[]>([
   {
     action: '定位阀门 V-12345',
     time: '10:23',
-    details: '坐标: 39.9087, 116.3975'
+    details: '坐标: 36.60192102, 109.46853429'
   },
   {
     action: '执行影响分析',
@@ -373,7 +383,7 @@ const handleValveSearch = (searchText: string) => {
   currentValve.value = {
     id: 'V-' + Math.random().toString(36).substr(2, 5),
     name: searchText,
-    coordinates: [116.3975, 39.9087],
+    coordinates: [109.46853429, 36.60192102],
     type: '主阀门',
     status: '正常'
   }
@@ -522,77 +532,6 @@ const gasStatusPanelWidth = ref(320)
 
 // 气源压力设备数据
 const gasStatusDevices = ref<any>(null);
-// const gasStatusDevices = ref([
-//   {
-//     id: 'FC1',
-//     name: 'FC1',
-//     status: 'normal' as const,
-//     pressure: '0.85',
-//     temperature: '25.3',
-//     coordinates: [116.3974, 39.9093],
-//     data: {
-//       type: 'pressure_station',
-//       model: 'PCS-1000',
-//       installDate: '2023-01-15'
-//     }
-//   },
-//   {
-//     id: 'FC2',
-//     name: 'FC2',
-//     status: 'normal' as const,
-//     pressure: '0.85',
-//     temperature: '25.3',
-//     coordinates: [116.3974, 38.9093],
-//     data: {
-//       type: 'pressure_station',
-//       model: 'PCS-1000',
-//       installDate: '2023-01-15'
-//     }
-//   },
-//   {
-//     id: 'FC3',
-//     name: 'FC3',
-//     status: 'normal' as const,
-//     pressure: '0.85',
-//     temperature: '25.3',
-//     coordinates: [116.3974, 39.9093],
-//     data: {
-//       type: 'pressure_station',
-//       model: 'PCS-1000',
-//       installDate: '2023-01-15'
-//     }
-//   },
-//   {
-//     id: 'FC4',
-//     name: 'FC4',
-//     status: 'normal' as const,
-//     pressure: '0.85',
-//     temperature: '25.3',
-//     coordinates: [116.3974, 39.9093],
-//     data: {
-//       type: 'pressure_station',
-//       model: 'PCS-1000',
-//       installDate: '2023-01-15'
-//     }
-//   },
-//   // ... 其他设备数据
-// ])
-
-// 面板样式
-const gasStatusPanelStyle = computed(() => {
-  const style: any = {
-    width: `${gasStatusPanelWidth.value}px`
-  }
-
-  if (showBottomPanel.value && showGasStatusPanel.value) {
-    const bottomPanelVisibleHeight = bottomPanelHeight.value + 40
-    style.height = `calc(100% - ${bottomPanelVisibleHeight}px)`
-  } else {
-    style.height = 'calc(100% - 40px)'
-  }
-
-  return style
-})
 
 // 气源压力面板事件处理
 const handleGasDeviceClick = async (device: any) => {
@@ -949,16 +888,85 @@ const leftPanelStyle = computed(() => {
     width: `${leftPanelWidth.value}px`
   }
 
-  // 当底部面板显示时，调整左侧面板高度避免重叠
-  if (showBottomPanel.value && showLeftPanel.value) {
+  // 当底部面板显示时，计算可用高度
+  if (showBottomPanel.value) {
+    // 计算底部面板在屏幕上的实际高度（包括边距）
     const bottomPanelVisibleHeight = bottomPanelHeight.value + 40 // 底部面板高度 + 上下边距
-    style.height = `calc(100% - ${bottomPanelVisibleHeight}px)`
+    const viewportHeight = window.innerHeight - 64 // 减去Header高度
+    const availableHeight = viewportHeight - bottomPanelVisibleHeight - 40 // 减去底部面板高度和顶部边距
+
+    style.height = `${availableHeight}px`
+    style.maxHeight = `${availableHeight}px`
   } else {
     style.height = 'calc(100% - 40px)' // 默认高度（上下各20px边距）
   }
 
   return style
 })
+
+// 树形面板样式
+const leftTreePanelStyle = computed(() => {
+  return getLeftPanelStyle()
+})
+
+// 终端设备面板样式
+const leftTerminalPanelStyle = computed(() => {
+  return getLeftPanelStyle()
+})
+
+// 气源状态面板样式
+const gasStatusPanelStyle = computed(() => {
+  const style: any = {
+    width: `${gasStatusPanelWidth.value}px`
+  }
+
+  // 使用统一的高度计算方法
+  const heightStyle = getLeftPanelStyle()
+  style.height = heightStyle.height
+  style.maxHeight = heightStyle.maxHeight
+
+  return style
+})
+
+// 统一的左侧面板样式计算方法
+const getLeftPanelStyle = () => {
+  const style: any = {}
+
+  // 根据具体面板设置宽度
+  if (currentGasPanel.value === 'status' || currentGasPanel.value === 'analysis' || currentGasPanel.value === 'emergency-command') {
+    style.width = `${gasStatusPanelWidth.value}px`
+  } else {
+    style.width = `${leftPanelWidth.value}px`
+  }
+
+  // 计算高度
+  if (showBottomPanel.value) {
+    const viewportHeight = window.innerHeight
+    const headerHeight = 64
+    const bottomPanelMargin = 20
+
+    // 计算底部面板占据的总高度
+    const bottomPanelTotalHeight = bottomPanelHeight.value + (bottomPanelMargin * 2)
+
+    // 计算可用高度
+    const availableHeight = viewportHeight - headerHeight - bottomPanelTotalHeight - 20
+
+    // 设置最小和最大高度限制
+    const minHeight = 300 // 最小高度300px
+    const maxHeight = 600 // 最大高度600px
+    const calculatedHeight = Math.max(minHeight, Math.min(maxHeight, availableHeight))
+
+    style.height = `${calculatedHeight}px`
+    style.maxHeight = `${calculatedHeight}px`
+  } else {
+    // 没有底部面板时，使用视窗高度
+    const maxHeight = window.innerHeight - 84 // Header高度64px + 上下边距20px
+    style.height = `${maxHeight}px`
+    style.maxHeight = `${maxHeight}px`
+  }
+
+  return style
+}
 
 // 树形结构数据
 const treeData = ref([
@@ -1691,15 +1699,16 @@ const handleMenuClick = (menuKey: string) => {
 
 // 在现有的响应式数据中修改
 const showGasPanel = ref(false) // 统一控制面板显示
-// 更新面板类型定义
-const currentGasPanel = ref<'status' | 'analysis' | 'emergency-command'>('status')
+// 面板类型定义
+const currentGasPanel = ref<'status' | 'analysis' | 'emergency-command' | 'terminal-equipment'>('status')
 
-// 更新面板标题计算
+// 面板标题计算
 const gasPanelTitle = computed(() => {
   const titles = {
     'status': '气源压力运行',
     'analysis': '关阀分析',
-    'emergency-command': '应急抢险'
+    'emergency-command': '应急抢险',
+    'terminal-equipment': '终端设备管理'
   }
   return titles[currentGasPanel.value] || '气源压力运行'
 })
@@ -1707,27 +1716,53 @@ const gasPanelTitle = computed(() => {
 const legendItems = ref<any>([])
 const legendTitle = ref('设备图例')
 
+const terminalEquipmentRef = ref()
+const terminalStatsRef = ref()
+const currentBottomPanel = ref('')
+
 // 管网管理菜单处理
+// 在 handlePipeNetworkMenu 方法中修改终端设备菜单处理
 const handlePipeNetworkMenu = (menuKey: string) => {
   activeMenu.value = menuKey
   switch (menuKey) {
+    case '/pipe-network/terminal-equipment': // 终端设备管理
+      // 显示在气源压力面板区域
+      currentGasPanel.value = 'terminal-equipment'
+      showGasPanel.value = true
+      // 显示底部统计面板
+      showBottomPanel.value = true
+      currentBottomPanel.value = 'terminal-stats'
+      bottomTableTitle.value = '终端设备统计'
+      // 隐藏其他左侧面板
+      showLeftPanel.value = false
+      break
+
     case '/pipe-network/gas-source':
     case '/pipe-network/end-point':
-      // 显示气源压力面板
       currentGasPanel.value = 'status'
       showGasPanel.value = true
+      // 隐藏底部面板
+      showBottomPanel.value = false
       break
-    case '/pipe-network/valve-analysis': // 新增关阀分析菜单
-      // 显示关阀分析面板
+
+    case '/pipe-network/valve-analysis':
       currentGasPanel.value = 'analysis'
       showGasPanel.value = true
+      // 隐藏底部面板
+      showBottomPanel.value = false
       break
+
     case '/pipe-network/distribution':
       showPipeTypePanel.value = !showPipeTypePanel.value
       showBottomPanel.value = !showBottomPanel.value
+      currentBottomPanel.value = 'pipe-distribution'
       tableColumns.value = gasColumns.value
       tableData.value = gasData.value
+      currentBottomPanel.value = ''
+      // 隐藏气源面板
+      showGasPanel.value = false
       break
+
     case '/pipe-network/equipment':
       bottomTableTitle.value = '设备设施列表'
       legendItems.value = [
@@ -1741,14 +1776,80 @@ const handlePipeNetworkMenu = (menuKey: string) => {
       ]
       showLegendPanel.value = true
       showBottomPanel.value = true
+      currentBottomPanel.value = 'device-equipment'
       tableColumns.value = deviceColumns.value
       tableData.value = deviceTableData.value
+      currentBottomPanel.value = ''
+      // 隐藏气源面板
+      showGasPanel.value = false
       break
   }
 
   setTimeout(() => {
     map?.updateSize()
   }, 100)
+}
+
+// 终端设备相关方法
+const handleTerminalDeviceClick = (device: any) => {
+  console.log('终端设备点击:', device)
+
+  // 聚焦到设备位置
+  if (device.coordinates && map) {
+    focusOnCoordinates(device.coordinates)
+
+    // 显示设备详情弹窗
+    showTerminalDeviceDetail(device)
+  }
+}
+
+const refreshTerminalData = () => {
+  if (terminalEquipmentRef.value) {
+    terminalEquipmentRef.value.refreshData()
+  }
+}
+
+const refreshGasStatusData = () => {
+  console.log('刷新气源压力数据')
+  // 这里可以调用API刷新气源数据
+}
+
+const showTerminalDeviceDetail = async (device: any) => {
+  console.log('显示终端设备详情:', device.name)
+
+  // 创建设备数据
+  const deviceData = {
+    id: `terminal_${device.id}`,
+    name: device.name,
+    type: getTerminalDeviceType(device.type),
+    status: device.status,
+    location: device.location,
+    updateTime: new Date().toLocaleString('zh-CN'),
+    ...device
+  }
+
+  // 创建图表数据
+  const chartData = {
+    accumulated: Math.floor(Math.random() * 1000).toString(),
+    flowRate: device.flow ? parseFloat(device.flow) : (Math.random() * 10).toFixed(2),
+    temperature: device.temperature ? parseFloat(device.temperature) : Math.floor(Math.random() * 50),
+    pressure: device.pressure ? parseFloat(device.pressure) : (Math.random() * 5).toFixed(2),
+    temperatureData: Array(6).fill(0).map(() => Math.floor(Math.random() * 50)),
+    pressureData: Array(6).fill(0).map(() => (Math.random() * 5).toFixed(2))
+  }
+
+  // 创建设备弹窗
+  await createDevicePopup(deviceData.id, deviceData, chartData, device.coordinates)
+}
+
+const getTerminalDeviceType = (type: string) => {
+  const typeMap: Record<string, string> = {
+    '燃气表': '燃气计量终端',
+    '压力传感器': '压力监测终端',
+    '流量传感器': '流量监测终端',
+    '阀门控制器': '阀门控制终端'
+  }
+  return typeMap[type] || '终端设备'
 }
 
 // 巡检管理菜单处理
@@ -1761,6 +1862,7 @@ const handleInspectionMenu = (menuKey: string) => {
       // 显示巡检任务面板
       bottomTableTitle.value = '市政管网列表'
       showBottomPanel.value = !showBottomPanel.value
+      currentBottomPanel.value = 'inspection-tasks'
       tableColumns.value = gasInspectionColumns.value
       tableData.value = inspectionData.value
       popupType.value = 'inspection'
@@ -1769,6 +1871,7 @@ const handleInspectionMenu = (menuKey: string) => {
       // 显示巡检路线面板
       bottomTableTitle.value = '庭院管网列表'
       showBottomPanel.value = !showBottomPanel.value
+      currentBottomPanel.value = 'inspection-courtyard'
       tableColumns.value = gasInspectionColumns.value
       tableData.value = inspectionData.value
       popupType.value = 'inspection'
@@ -1777,6 +1880,7 @@ const handleInspectionMenu = (menuKey: string) => {
       // 显示巡检报告面板
       bottomTableTitle.value = '庭院管网列表'
       showBottomPanel.value = !showBottomPanel.value
+      currentBottomPanel.value = 'inspection-household'
       tableColumns.value = gasInspectionColumns.value
       tableData.value = inspectionData.value
       popupType.value = 'inspection'
@@ -1785,6 +1889,7 @@ const handleInspectionMenu = (menuKey: string) => {
       // 显示巡检报告面板
       bottomTableTitle.value = '设备设施列表'
       showBottomPanel.value = !showBottomPanel.value
+      currentBottomPanel.value = 'inspection-equipments'
       tableColumns.value = equipmentInspectionColumns.value
       tableData.value = deviceData.value
       popupType.value = 'equipments'
@@ -1801,6 +1906,7 @@ const handleEngineeringMenu = (menuKey: string) => {
       // 显示应急抢险面板
       bottomTableTitle.value = '服务应急抢险列表'
       showBottomPanel.value = !showBottomPanel.value
+      currentBottomPanel.value = 'engineering-emergency'
       tableColumns.value = emergencyColumns.value
       tableData.value = emergencyData.value
       break
@@ -1808,6 +1914,7 @@ const handleEngineeringMenu = (menuKey: string) => {
       // 显示工程进度面板
       bottomTableTitle.value = '工程建设管理列表'
       showBottomPanel.value = !showBottomPanel.value
+      currentBottomPanel.value = 'engineering-management'
       tableColumns.value = constructionColumns.value
       tableData.value = constructionData.value
       popupType.value = 'construction'
@@ -1820,8 +1927,8 @@ const handleEngineeringMenu = (menuKey: string) => {
       currentRightPanel.value = 'warning'
       showRightPanel.value = true
       break
-    }
   }
+}
 
 // 客服管理菜单处理
 const handleCustomerServiceMenu = (menuKey: string) => {
@@ -1840,6 +1947,7 @@ const handleCustomerServiceMenu = (menuKey: string) => {
       showLegendPanel.value = true
       bottomTableTitle.value = '工程建设管理列表'
       showBottomPanel.value = !showBottomPanel.value
+      currentBottomPanel.value = 'customer-service'
       tableColumns.value = customerServiceColumns.value
       tableData.value = customerServiceData.value
       popupType.value = 'customerService'
@@ -2439,116 +2547,6 @@ const handleTableRowClick = async (rowData: any) => {
   }
 }
 
-// // 显示管网信息弹窗
-// const showOfficialInfoPopup = async (officialInfo: any, coordinates: any) => {
-//   const popupId = `official_info_${Date.now()}`
-
-//   try {
-//     console.log('开始创建管网信息弹窗，坐标:', coordinates)
-
-//     // 创建弹窗容器
-//     const popupElement = document.createElement('div')
-//     popupElement.className = 'ol-popup official-info-popup-container'
-//     popupElement.style.cssText = `
-//       position: absolute;
-//       background: white;
-//       border-radius: 8px;
-//       box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
-//       border: 1px solid ${gasBlueTheme.primary};
-//       width: 320px;
-//       max-width: 450px;
-//       min-width: 280px;
-//       height: 300px;
-//       z-index: 1003;
-//       transform: translate(-50%, -100%);
-//       cursor: default;
-//       font-size: 12px;
-//       overflow: hidden;
-//     `
-
-//     // 创建弹窗内容容器
-//     const popupContent = document.createElement('div')
-//     popupContent.className = 'popup-content'
-//     popupContent.style.cssText = `
-//       max-height: 500px;
-//       overflow: hidden;
-//     `
-
-//     // 组装弹窗
-//     popupElement.appendChild(popupContent)
-
-//     // 创建 Overlay
-//     const overlay = new Overlay({
-//       element: popupElement,
-//       positioning: 'bottom-center',
-//       stopEvent: true,
-//       offset: [0, -10],
-//     })
-
-//     // 设置位置 - 修复坐标处理
-//     let pixelCoordinates
-//     if (Array.isArray(coordinates) && Array.isArray(coordinates[0])) {
-//       // 如果是线状要素（管线），取第一个点作为弹窗位置
-//       console.log('线状要素，使用第一个点坐标:', coordinates[0])
-//       pixelCoordinates = fromLonLat(coordinates[0])
-//     } else {
-//       // 如果是点状要素
-//       console.log('点状要素，使用坐标:', coordinates)
-//       pixelCoordinates = fromLonLat(coordinates)
-//     }
-
-//     console.log('弹窗位置像素坐标:', pixelCoordinates)
-//     overlay.setPosition(pixelCoordinates)
-
-//     // 添加到地图
-//     if (map) {
-//       map.addOverlay(overlay)
-//       console.log('弹窗已添加到地图')
-//     }
-
-//     // 使用 Vue 渲染组件内容
-//     const { createApp } = await import('vue')
-
-//     console.log('创建官网信息弹窗 Vue 应用', officialInfo)
-
-//     // 创建 Vue 应用
-//     const app = createApp(OfficialInfoPopup, {
-//       infoData: officialInfo,
-//       themeColors: gasBlueTheme,
-//       onClose: () => {
-//         console.log('关闭管网信息弹窗')
-//         removeDevicePopup(popupId)
-//       },
-//       onViewDetail: (data) => {
-//         console.log('查看详情:', data)
-//         // 这里可以跳转到详情页面或显示更详细的信息
-//       }
-//     })
-
-//     // 挂载到弹窗内容容器
-//     app.mount(popupContent)
-
-//     // 存储弹窗引用
-//     const popupInfo: PopupInfo = {
-//       overlay,
-//       element: popupElement,
-//       app
-//     }
-
-//     setDevicePopup(popupId, popupInfo)
-
-//     console.log(`管网信息弹窗 ${popupId} 创建成功`, popupElement)
-
-//     // 确保地图更新
-//     setTimeout(() => {
-//       map?.updateSize()
-//     }, 100)
-
-//   } catch (error) {
-//     console.error('创建官网信息弹窗失败:', error)
-//   }
-// }
-
 // 刷新表格数据
 const refreshTableData = () => {
   tableLoading.value = true
@@ -2564,39 +2562,6 @@ const exportTableData = () => {
   console.log('导出表格数据')
   // 这里可以实现导出逻辑
 }
-
-// // 面板拖拽调整大小
-// const startResize = (direction: string) => {
-//   isResizing.value = true
-//   resizeDirection.value = direction
-
-//   const handleMouseMove = (e: MouseEvent) => {
-//     if (!isResizing.value) return
-
-//     if (direction === 'left') {
-//       leftPanelWidth.value = Math.max(280, Math.min(500, e.clientX))
-//     } else if (direction === 'bottom') {
-//       const windowHeight = window.innerHeight
-//       const newHeight = Math.max(200, Math.min(400, windowHeight - e.clientY))
-//       bottomPanelHeight.value = newHeight
-//     }
-//   }
-
-//   const handleMouseUp = () => {
-//     isResizing.value = false
-//     resizeDirection.value = ''
-//     document.removeEventListener('mousemove', handleMouseMove)
-//     document.removeEventListener('mouseup', handleMouseUp)
-
-//     // 调整地图大小
-//     setTimeout(() => {
-//       map?.updateSize()
-//     }, 50)
-//   }
-
-//   document.addEventListener('mousemove', handleMouseMove)
-//   document.addEventListener('mouseup', handleMouseUp)
-// }
 
 // 监听面板显示状态变化，动态调整地图
 watch([showLeftPanel, showBottomPanel], () => {
@@ -3093,6 +3058,18 @@ const getLayerName = (layerId: number): string => {
 }
 
 
+// 添加窗口大小变化处理函数
+// const handleWindowResize = () => {
+//   // 触发样式重新计算
+//   leftTreePanelStyle.value = getLeftPanelStyle()
+//   leftTerminalPanelStyle.value = getLeftPanelStyle()
+//   gasStatusPanelStyle.value = getLeftPanelStyle()
+
+//   // 更新地图大小
+//   setTimeout(() => {
+//     map?.updateSize()
+//   }, 100)
+// }
 
 const pntData = ref<any[]>([])
 const linData = ref<any[]>([])
@@ -3406,6 +3383,8 @@ const getTagType = (type: string) => {
   transition: all 0.3s ease;
   border: 1px solid v-bind('gasBlueTheme.borderBlue');
   backdrop-filter: blur(8px);
+  overflow: hidden;
+  /* 确保内容不会溢出 */
 }
 
 .floating-panel.panel-hidden {
@@ -3415,7 +3394,7 @@ const getTagType = (type: string) => {
 }
 
 /* 左侧树形面板 */
-.left-tree-panel {
+/* .left-tree-panel {
   left: 20px;
   top: 20px;
   width: v-bind(leftPanelWidth + 'px');
@@ -3423,8 +3402,7 @@ const getTagType = (type: string) => {
   max-width: 500px;
   background: linear-gradient(135deg, v-bind('gasBlueTheme.lightBlue') 0%, white 100%);
   border: 1px solid v-bind('gasBlueTheme.borderBlue');
-  /* 高度通过动态样式控制 */
-}
+} */
 
 /* 底部表格面板 */
 .bottom-table-panel {
@@ -3640,7 +3618,7 @@ const getTagType = (type: string) => {
 }
 
 /* 新增气源压力面板样式 */
-.left-gas-status-panel {
+/* .left-gas-status-panel {
   left: 20px;
   top: 20px;
   width: v-bind(gasStatusPanelWidth + 'px');
@@ -3648,10 +3626,10 @@ const getTagType = (type: string) => {
   max-width: 500px;
   background: linear-gradient(135deg, v-bind('gasBlueTheme.lightBlue') 0%, white 100%);
   border: 1px solid v-bind('gasBlueTheme.borderBlue');
-}
+} */
 
 /* 响应式设计 */
-@media (max-width: 768px) {
+/* @media (max-width: 768px) {
   .left-gas-status-panel {
     left: 10px;
     right: 10px;
@@ -3661,7 +3639,7 @@ const getTagType = (type: string) => {
     min-width: unset;
     max-width: unset;
   }
-}
+} */
 
 /* 确保管网类型面板的z-index正确 */
 :deep(.pipe-type-panel) {
@@ -3781,7 +3759,97 @@ const getTagType = (type: string) => {
 
 @media (max-width: 768px) {
   .right-panel {
-    display: none; /* 移动端隐藏右侧面板 */
+    display: none;
+    /* 移动端隐藏右侧面板 */
   }
+}
+
+/* 左侧面板通用样式 */
+.left-tree-panel,
+.left-terminal-panel,
+.left-gas-status-panel {
+  left: 20px;
+  top: 20px;
+  min-width: 280px;
+  max-width: 450px;
+  background: linear-gradient(135deg, v-bind('gasBlueTheme.lightBlue') 0%, white 100%);
+  border: 1px solid v-bind('gasBlueTheme.borderBlue');
+}
+
+/* 面板内容区域确保使用flex布局 */
+.panel-content {
+  flex: 1;
+  overflow: auto;
+  /* 允许内容滚动 */
+  border-radius: 0 0 8px 8px;
+  background: transparent;
+}
+
+/* 当有底部面板时，左侧面板的特殊样式 */
+.floating-panel.with-bottom-panel {
+  box-shadow: 0 4px 20px rgba(30, 111, 186, 0.3);
+}
+
+/* 响应式设计 - 移动端 */
+@media (max-width: 768px) {
+
+  .left-tree-panel,
+  .left-terminal-panel,
+  .left-gas-status-panel {
+    left: 10px;
+    right: 10px;
+    top: 10px;
+    width: auto !important;
+    max-width: unset;
+  }
+
+  /* 移动端当底部面板显示时，左侧面板高度减少 */
+  .floating-panel.with-bottom-panel {
+    height: calc(50vh - 20px) !important;
+    max-height: calc(50vh - 20px) !important;
+  }
+}
+
+/* 确保面板内容不会导致面板膨胀 */
+:deep(.terminal-equipment-panel),
+:deep(.tree-structure),
+:deep(.gas-status-panel) {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 优化滚动条样式 */
+.panel-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.panel-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.panel-content::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.panel-content::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* 确保底部面板的图表区域正确显示 */
+.bottom-table-panel .panel-content {
+  overflow: auto;
+}
+
+.terminal-stats-panel {
+  height: 100%;
+  padding: 16px;
+}
+
+/* 调整面板操作按钮间距 */
+.panel-actions {
+  gap: 8px;
 }
 </style>

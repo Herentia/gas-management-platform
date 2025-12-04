@@ -248,6 +248,13 @@ const allMenuItems: Record<string, MenuItem[]> = {
       path: '/pipe-network/valve-analysis',
       icon: markRaw(SwitchButton),
       children: []
+    },
+    {
+      id: 6,
+      title: '终端设备管理',
+      path: '/pipe-network/terminal-equipment',
+      icon: markRaw(Tools),
+      children: []
     }
   ],
   // 巡检管理菜单
