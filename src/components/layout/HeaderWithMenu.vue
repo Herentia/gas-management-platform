@@ -300,6 +300,20 @@ const allMenuItems: Record<string, MenuItem[]> = {
       path: '/inspection/equipments',
       icon: markRaw(WarningFilled),
       children: []
+    },
+    {
+      id: 5,
+      title: '安检计划',
+      path: '/inspection/safetyPlans',
+      icon: markRaw(TrendCharts),
+      children: []
+    },
+    {
+      id: 6,
+      title: '安检地图',
+      path: '/inspection/safetyMap',
+      icon: markRaw(MapLocation),
+      children: []
     }
   ],
   // 工程管理菜单

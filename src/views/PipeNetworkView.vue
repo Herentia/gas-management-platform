@@ -71,6 +71,10 @@
             <!-- 终端设备管理组件 -->
             <TerminalEquipmentPanel v-else-if="currentGasPanel === 'terminal-equipment'" ref="terminalEquipmentRef"
               @device-click="handleTerminalDeviceClick" />
+
+            <!-- 安检地图组件 -->
+            <SafetyInspectionMap v-else-if="currentGasPanel === 'inspection-map'" ref="safetyInspectionMapRef"
+              @area-select="handleSafetyAreaSelect" />
           </div>
           <div class="panel-resize-handle" @mousedown="startResize('gasStatus')"></div>
         </div>
@@ -158,30 +162,58 @@
             <!-- 终端统计面板 -->
             <TerminalStatsPanel ref="terminalStatsRef" v-if="currentBottomPanel === 'terminal-stats'" />
 
-            <!-- 原有的数据表格 -->
-            <DataTable v-else :data="tableData" :loading="tableLoading" :columns="tableColumns" :show-actions="true"
-              :show-pagination="true" :show-edit="false" :show-delete="false" @row-click="handleTableRowClick"
-              @view="handleTableView" @refresh="refreshTableData" @export="exportTableData" @search="handleTableSearch">
-              <!-- 自定义插槽保持不变 -->
-              <template #status="{ row }">
-                <el-tag :type="row.status === '正常' ? 'success' : 'danger'" size="small">
-                  {{ row.status }}
-                </el-tag>
+            <!-- 数据表格 -->
+            <DataTable v-else :data="tableData" :loading="tableLoading" :columns="tableColumns"
+              :show-actions="currentBottomPanel !== 'safety-plans'" :show-pagination="true" :show-edit="false"
+              :show-delete="false" @row-click="handleTableRowClick" @view="handleTableView" @refresh="refreshTableData"
+              @export="exportTableData" @search="handleTableSearch">
+
+              <!-- 完成率插槽 - 只在安检计划时使用 -->
+              <template v-if="currentBottomPanel === 'safety-plans'" #completionRate="{ row }">
+                <div>
+                  <div style="margin-bottom: 4px; font-size: 12px; color: #666;">
+                    完成率: {{ row.completionRate }}%
+                  </div>
+                  <el-progress :percentage="row.completionRate" :stroke-width="16"
+                    :color="getProgressColor(row.completionRate)" :format="(percentage: any) => `${percentage}%`" />
+                </div>
               </template>
 
+              <!-- 状态标签插槽 -->
+              <template #status="{ row }">
+                <!-- 安检计划的状态显示 -->
+                <template v-if="currentBottomPanel === 'safety-plans' && row.status">
+                  <el-tag :type="getSafetyPlanStatusType(row.status)" size="small">
+                    {{ row.status }}
+                  </el-tag>
+                </template>
+
+                <!-- 原有的状态显示（巡检、设备等） -->
+                <template v-else>
+                  <el-tag :type="row.status === '正常' ? 'success' : 'danger'" size="small">
+                    {{ row.status }}
+                  </el-tag>
+                </template>
+              </template>
+
+              <!-- 安检计划专用操作插槽 - 使用actions插槽替换默认操作列 -->
+              <template v-if="currentBottomPanel === 'safety-plans'" #actions="{ row }">
+                <el-button link type="primary" size="small" @click.stop="handleSafetyPlanAction(row)">
+                  任务分配
+                </el-button>
+                <el-button link type="success" size="small" @click.stop="handleSafetyPlanExport(row)">
+                  导出报告
+                </el-button>
+                <el-button link type="warning" size="small" @click.stop="handleSafetyPlanView(row)">
+                  查看详情
+                </el-button>
+              </template>
+
+              <!-- 原有的其他插槽保持不变 -->
               <template #type="{ row }">
                 <el-tag :type="getTagType(row.type)" size="small">
                   {{ row.type }}
                 </el-tag>
-              </template>
-
-              <template #actions="{ row }">
-                <el-button link type="primary" @click.stop="handleTableView(row)">
-                  查看
-                </el-button>
-                <el-button link type="warning" @click.stop="handleTableEdit(row)">
-                  编辑
-                </el-button>
               </template>
             </DataTable>
           </div>
@@ -257,7 +289,122 @@ import ValveDetailPanel from '@/components/device/ValveDetailPanel.vue'
 // 导入终端设备管理组件
 import TerminalEquipmentPanel from '@/components/map/TerminalEquipmentPanel.vue'
 import TerminalStatsPanel from '@/components/map/TerminalStatsPanel.vue'
+// 导入安检地图组件
+import SafetyInspectionMap from '@/components/map/SafetyInspectionMap.vue'
 
+// 新增安检地图响应式数据
+const showSafetyMapPanel = ref(false)
+const currentSafetyMapPanel = ref<'inspection-map'>('inspection-map')
+const safetyInspectionMapRef = ref()
+// 安检地图方法
+const refreshSafetyMapData = () => {
+  console.log('刷新安检地图数据')
+  if (safetyInspectionMapRef.value) {
+    // 调用组件的刷新方法
+    safetyInspectionMapRef.value.refreshData?.()
+  }
+}
+
+// 处理区域选择
+const handleSafetyAreaSelect = (area: any) => {
+  console.log('安检区域选择:', area)
+
+  // 聚焦到区域位置
+  if (area.coordinates && map) {
+    focusOnCoordinates(area.coordinates)
+
+    // 可以在这里显示区域详情弹窗
+    showSafetyAreaDetail(area)
+  }
+}
+
+// 显示安检区域详情
+const showSafetyAreaDetail = (area: any) => {
+  console.log('显示安检区域详情:', area.name)
+
+  // 创建设备数据
+  const areaData = {
+    id: `safety_${area.id}`,
+    name: area.name,
+    type: '安检区域',
+    status: '正常',
+    location: `${area.coordinates[0]?.toFixed(4)}, ${area.coordinates[1]?.toFixed(4)}`,
+    updateTime: new Date().toLocaleString('zh-CN'),
+    ...area
+  }
+
+  // 创建图表数据
+  const chartData = {
+    accumulated: area.stats.total.value.replace(',', ''),
+    flowRate: area.progress.percentage,
+    temperature: '25',
+    pressure: '正常',
+    temperatureData: Array(6).fill(0).map(() => Math.floor(Math.random() * 50)),
+    pressureData: Array(6).fill(0).map(() => Math.floor(Math.random() * 50) + 50)
+  }
+
+  // 创建设备弹窗
+  createDevicePopup(areaData.id, areaData, chartData, area.coordinates)
+}
+
+// 安检计划方法
+// 获取进度条颜色
+const handleSafetyPlanAction = (row: any) => {
+  console.log('分配安检计划任务:', row)
+  ElMessage.info(`开始分配 ${row.planName} 的任务`)
+  // 这里可以调用任务分配API
+}
+
+// 处理安检计划导出
+const handleSafetyPlanExport = (row: any) => {
+  console.log('导出安检计划报告:', row)
+  exportSafetyPlanReport(row)
+}
+
+// 处理安检计划查看详情
+const handleSafetyPlanView = (row: any) => {
+  console.log('查看安检计划详情:', row)
+  showSafetyPlanDetail(row)
+}
+
+// 获取安检计划状态类型
+const getSafetyPlanStatusType = (status: string) => {
+  const statusMap: Record<string, string> = {
+    '已完成': 'success',
+    '进行中': 'primary',
+    '已取消': 'info',
+    '未开始': 'warning',
+    '已暂停': 'danger'
+  }
+  return statusMap[status] || ''
+}
+
+// 获取进度条颜色
+const getProgressColor = (percentage: number) => {
+  if (percentage >= 100) {
+    return '#13ce66' // 绿色
+  } else if (percentage >= 70) {
+    return '#2d8cf0' // 蓝色
+  } else if (percentage >= 40) {
+    return '#ff9900' // 橙色
+  } else {
+    return '#ff4d4f' // 红色
+  }
+}
+
+// 导出安检计划报告
+const exportSafetyPlanReport = (plan: any) => {
+  console.log('导出安检计划报告:', plan)
+  // 这里可以实现导出逻辑
+  ElMessage.success(`正在导出 ${plan.planName} 的报告...`)
+}
+
+// 显示安检计划详情
+const showSafetyPlanDetail = (plan: any) => {
+  // 这里可以创建一个详情弹窗
+  ElMessage.info(`查看 ${plan.planName} 详情`)
+  // 可以调用已有的弹窗组件显示详情
+}
 
 // 在响应式数据部分添加
 const showRightPanel = ref(false)
@@ -925,6 +1072,11 @@ const gasStatusPanelStyle = computed(() => {
   style.height = heightStyle.height
   style.maxHeight = heightStyle.maxHeight
 
+  // 如果是安检地图面板，可以调整宽度
+  if (currentGasPanel.value === 'inspection-map') {
+    style.width = `${Math.max(350, Math.min(450, gasStatusPanelWidth.value))}px`
+  }
+
   return style
 })
 
@@ -1215,6 +1367,79 @@ const gasData = ref([
       }
     }
   }
+])
+
+// 安检计划表格列配置
+const safetyPlanColumns = ref([
+  { prop: 'planId', label: '计划ID', width: 130, sortable: true },
+  { prop: 'planName', label: '计划名称', minWidth: 180, sortable: true },
+  { prop: 'coverage', label: '覆盖范围', minWidth: 150 },
+  { prop: 'planCycle', label: '计划周期', width: 100 },
+  { prop: 'timeRange', label: '时间范围', width: 200 },
+  { prop: 'responsiblePerson', label: '负责安检员', width: 100 },
+  { prop: 'taskCount', label: '任务数量', width: 100, sortable: true },
+  {
+    prop: 'completionRate',
+    label: '完成率',
+    width: 120,
+    slot: 'completionRate',
+    sortable: true
+  },
+  { prop: 'status', label: '状态', width: 80, slot: 'status' },
+  { prop: 'actions', label: '操作', width: 120, slot: 'actions' }
+])
+
+// 安检计划数据
+const safetyPlanData = ref([
+  {
+    planId: 'JH-202406001',
+    planName: '2024年第二季度居民用户安检计划',
+    coverage: '城东区域所有居民小区',
+    planCycle: '每季度',
+    timeRange: '2024-04-01 至 2024-06-30',
+    responsiblePerson: '李安检员',
+    taskCount: 3256,
+    completionRate: 100,
+    status: '已完成',
+    actions: '任务分配'
+  },
+  {
+    planId: 'JH-202406002',
+    planName: '老旧小区专项安检计划',
+    coverage: '城北区域所有老旧小区',
+    planCycle: '一次性',
+    timeRange: '2024-03-15 至 2024-05-15',
+    responsiblePerson: '王安检员',
+    taskCount: 1865,
+    completionRate: 100,
+    status: '已完成',
+    actions: '导出报告'
+  },
+  {
+    planId: 'JH-202406003',
+    planName: '工业用户月度安检计划',
+    coverage: '全市所有工业用户',
+    planCycle: '每月',
+    timeRange: '2024-06-01 至 2024-06-30',
+    responsiblePerson: '张安检员',
+    taskCount: 456,
+    completionRate: 50,
+    status: '进行中',
+    actions: '任务分配'
+  },
+  {
+    planId: 'JH-202406004',
+    planName: '商业用户季度安检计划',
+    coverage: '城西区域所有商业用户',
+    planCycle: '每季度',
+    timeRange: '2024-01-01 至 2024-03-31',
+    responsiblePerson: '刘安检员',
+    taskCount: 892,
+    completionRate: 20,
+    status: '进行中',
+    actions: '处理'
+  }
+  // 可以继续添加更多数据，总共28条
 ])
 
 const gasInspectionColumns = ref([
@@ -1700,7 +1925,7 @@ const handleMenuClick = (menuKey: string) => {
 // 在现有的响应式数据中修改
 const showGasPanel = ref(false) // 统一控制面板显示
 // 面板类型定义
-const currentGasPanel = ref<'status' | 'analysis' | 'emergency-command' | 'terminal-equipment'>('status')
+const currentGasPanel = ref<'status' | 'analysis' | 'emergency-command' | 'terminal-equipment' | 'inspection-map'>('status')
 
 // 面板标题计算
 const gasPanelTitle = computed(() => {
@@ -1708,7 +1933,8 @@ const gasPanelTitle = computed(() => {
     'status': '气源压力运行',
     'analysis': '关阀分析',
     'emergency-command': '应急抢险',
-    'terminal-equipment': '终端设备管理'
+    'terminal-equipment': '终端设备管理',
+    'inspection-map': '安检地图'
   }
   return titles[currentGasPanel.value] || '气源压力运行'
 })
@@ -1893,6 +2119,21 @@ const handleInspectionMenu = (menuKey: string) => {
       tableColumns.value = equipmentInspectionColumns.value
       tableData.value = deviceData.value
       popupType.value = 'equipments'
+      break
+    case '/inspection/safetyPlans':
+      // 显示安检计划面板
+      bottomTableTitle.value = '安检计划列表'
+      showBottomPanel.value = true
+      currentBottomPanel.value = 'safety-plans'
+      tableColumns.value = safetyPlanColumns.value
+      tableData.value = safetyPlanData.value
+      break
+    case '/inspection/safetyMap':
+      // 显示安检地图面板
+      currentGasPanel.value = 'inspection-map'
+      showGasPanel.value = true
+      // 隐藏底部面板
+      showBottomPanel.value = false
       break
   }
 }
@@ -2528,7 +2769,13 @@ const handlePopupAction = (actionKey: string, rowData: any) => {
 const handleTableRowClick = async (rowData: any) => {
   console.log('表格行点击:', rowData)
 
-  // 如果行数据有坐标，聚焦到该位置
+  // 如果当前是安检计划，特殊处理
+  if (currentBottomPanel.value === 'safety-plans') {
+    handleSafetyPlanView(rowData)
+    return
+  }
+
+  // 原有的其他处理逻辑
   if (rowData.data?.coordinates && map) {
     // 先移除所有现有的弹窗
     removeAllDevicePopups()
@@ -2547,20 +2794,49 @@ const handleTableRowClick = async (rowData: any) => {
   }
 }
 
-// 刷新表格数据
+// 刷新表格数据方法
 const refreshTableData = () => {
   tableLoading.value = true
-  // 模拟数据刷新
+
+  // 根据当前面板类型刷新不同数据
+  if (currentBottomPanel.value === 'safety-plans') {
+    refreshSafetyPlanData()
+  } else {
+    // 原有的刷新逻辑
+    setTimeout(() => {
+      tableLoading.value = false
+      console.log('表格数据已刷新')
+    }, 1000)
+  }
+}
+
+// 导出表格数据方法
+const exportTableData = () => {
+  console.log('导出表格数据')
+
+  // 根据当前面板类型导出不同数据
+  if (currentBottomPanel.value === 'safety-plans') {
+    exportAllSafetyPlans()
+  } else {
+    // 原有的导出逻辑
+  }
+}
+
+// 刷新安检计划数据
+const refreshSafetyPlanData = () => {
+  console.log('刷新安检计划数据')
+  // 这里可以调用API获取最新数据
   setTimeout(() => {
     tableLoading.value = false
-    console.log('表格数据已刷新')
+    ElMessage.success('安检计划数据已刷新')
   }, 1000)
 }
 
-// 导出表格数据
-const exportTableData = () => {
-  console.log('导出表格数据')
-  // 这里可以实现导出逻辑
+// 导出所有安检计划
+const exportAllSafetyPlans = () => {
+  console.log('导出所有安检计划')
+  // 实现导出逻辑
+  ElMessage.success('正在导出安检计划数据...')
 }
 
 // 监听面板显示状态变化，动态调整地图
@@ -3851,5 +4127,43 @@ const getTagType = (type: string) => {
 /* 调整面板操作按钮间距 */
 .panel-actions {
   gap: 8px;
+}
+
+/* 安检地图 面板样式 */
+/* 确保安检地图组件正确显示 */
+:deep(.safety-inspection-map) {
+  height: 100%;
+}
+
+/* 调整进度条大小 */
+:deep(.el-progress-circle) {
+  width: 70px;
+  height: 70px;
+}
+
+/* 确保面板内容滚动 */
+.left-gas-status-panel .panel-content {
+  overflow-y: auto;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .left-gas-status-panel {
+    left: 10px;
+    right: 10px;
+    top: 10px;
+    width: auto !important;
+    max-width: unset;
+  }
+
+  /* 在移动端调整统计显示 */
+  .stat-row {
+    flex-wrap: wrap;
+  }
+
+  .stat-item {
+    flex: 0 0 33.33%;
+    margin-bottom: 8px;
+  }
 }
 </style>
