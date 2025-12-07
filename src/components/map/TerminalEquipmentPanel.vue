@@ -135,7 +135,7 @@ const devices = ref<Device[]>([
     pressure: '2.3 kPa',
     flow: '0.0 m³/h',
     signal: '-75 dBm',
-    coordinates: [116.3974, 39.9093]
+    coordinates: [109.41067609, 36.60186556]
   },
   {
     id: '2',
@@ -146,7 +146,7 @@ const devices = ref<Device[]>([
     pressure: '0.8 kPa',
     temperature: '25.3 °C',
     signal: '-68 dBm',
-    coordinates: [116.4074, 39.9193]
+    coordinates: [109.42065609, 36.60186556]
   },
   {
     id: '3',
@@ -157,7 +157,7 @@ const devices = ref<Device[]>([
     lastOnline: '2小时前',
     flow: '-',
     signal: '-',
-    coordinates: [116.4174, 39.9093]
+    coordinates: [109.43064609, 36.60186556]
   },
   {
     id: '4',
@@ -168,7 +168,7 @@ const devices = ref<Device[]>([
     valveStatus: '关闭',
     maintainer: '添加提醒',
     estimatedCompletion: '1小时内',
-    coordinates: [116.4024, 39.9143]
+    coordinates: [109.44063609, 36.60186556]
   },
   {
     id: '5',
@@ -179,7 +179,7 @@ const devices = ref<Device[]>([
     pressure: '2.1 kPa',
     flow: '0.2 m³/h',
     signal: '-72 dBm',
-    coordinates: [116.3975, 39.9094]
+    coordinates: [109.45062609, 36.60186556]
   },
   {
     id: '6',
@@ -190,7 +190,7 @@ const devices = ref<Device[]>([
     pressure: '2.5 kPa',
     temperature: '23.8 °C',
     signal: '-65 dBm',
-    coordinates: [116.3976, 39.9095]
+    coordinates: [109.46061609, 36.60186556]
   }
 ])
 
